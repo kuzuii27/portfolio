@@ -355,3 +355,4 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 .level-opt small{font:500 12px/1.4 var(--mono);color:var(--fg-3)}
 .level-opt a{grid-column:2;color:var(--fg);font-weight:500;min-height:44px;display:inline-flex;align-items:center}
 @media (max-width:720px){.levels,.level-pick{grid-template-columns:1fr}}
+.level-card .level-sub{margin:4px 0 -4px;font:600 12px/1.4 var(--sans);text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3)}

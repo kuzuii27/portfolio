@@ -20,7 +20,10 @@ export function Levels() {
               <h3>{l.label}</h3>
               <p className="level-term">{l.term}</p>
               <p>{l.meaning}</p>
+              <p className="level-sub">In the demo</p>
               <ul className="level-list">{HIGHLIGHTS[l.id].map((h) => <li key={h}>{h}</li>)}</ul>
+              <p className="level-sub">In the full application</p>
+              <ul className="level-list">{l.full.map((f) => <li key={f}>{f}</li>)}</ul>
               <a className="btn btn-ghost" href={l.demo} target="_blank" rel="noopener">
                 Open demo<span className="sr"> of the {l.label} level (opens in a new tab)</span>
               </a>

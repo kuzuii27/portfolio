@@ -105,4 +105,15 @@ describe('site content', () => {
     const book = readFileSync('public/demos/high/book.html', 'utf8');
     for (const id of ['step-service', 'step-date', 'step-time', 'step-details', 'step-deposit']) expect(book).toContain(`id="${id}"`);
   });
+  it('each level lists what the full application includes, on the portfolio and in its demo', () => {
+    const levels = readFileSync('src/lib/levels.ts', 'utf8');
+    expect(levels).toContain('full:');
+    expect(readFileSync('src/components/Levels.tsx', 'utf8')).toContain('l.full.map');
+    for (const [id, item] of [['minimum', 'Domain and hosting set up'], ['standard', 'Admin portal to edit pages, prices and photos'], ['high', 'Booking calendar in the admin portal']]) {
+      expect(levels).toContain(item);
+      const page = readFileSync(`public/demos/${id}/index.html`, 'utf8');
+      expect(page, id).toContain('In the full application');
+      expect(page, id).toContain(item);
+    }
+  });
 });

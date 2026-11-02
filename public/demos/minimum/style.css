@@ -1,12 +1,13 @@
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.6 Arial,Helvetica,sans-serif;color:#222;background:#fff}
 img{max-width:100%;height:auto;display:block}
-.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,40px)}
+header .wrap{max-width:none}
 header{border-bottom:1px solid #ddd;padding:12px 0}
 header .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
 header strong{font-size:20px;color:#1d4ed8}
 a{color:#1d4ed8}
-.hero img{width:100%;max-height:360px;object-fit:cover}
+.hero img{width:100%;max-height:420px;object-fit:cover}
 h1{font-size:28px;margin:20px 0 8px}
 h2{font-size:22px;margin:32px 0 8px;border-bottom:2px solid #1d4ed8;padding-bottom:4px}
 .buttons{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
