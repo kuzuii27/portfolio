@@ -1,12 +1,14 @@
 // FAQ matcher for the demo clinic chatbot. Fixed answers only; symptoms and unknown questions go to staff.
 
 const SYMPTOMS = ['masakit', 'sakit', 'pain', 'painful', 'ache', 'aching', 'toothache', 'bleeding', 'bleed', 'dugo', 'dumudugo',
-  'namamaga', 'maga', 'swollen', 'swelling', 'infection', 'nana', 'pus', 'emergency', 'fever', 'lagnat'];
+  'namamaga', 'maga', 'swollen', 'swelling', 'infection', 'nana', 'pus', 'emergency', 'fever', 'lagnat',
+  'hurts', 'hurting', 'sumasakit', 'kirot', 'makirot', 'kumikirot', 'sore', 'cracked', 'broken', 'chipped', 'nabasag', 'basag', 'nabali'];
+// 'hurt' alone stays out on purpose: "does cleaning hurt?" is a comfort question, not a symptom.
 
 const FAQ = [
   { id: 'prices', words: ['magkano', 'much', 'price', 'prices', 'presyo', 'cost', 'costs', 'rate', 'rates', 'fee', 'fees'],
     text: 'Sample prices: Consultation ₱500 · Cleaning ₱1,000 - ₱1,500 · Filling from ₱1,000 · Extraction from ₱1,000 · Whitening from ₱8,000 · Braces from ₱40,000. Your dentist confirms the final price before treatment.' },
-  { id: 'hmo', words: ['hmo', 'maxicare', 'intellicare', 'medicard', 'insurance', 'card'],
+  { id: 'hmo', words: ['hmo', 'maxicare', 'intellicare', 'medicard', 'insurance'],
     text: 'Yes, we accept Maxicare, Intellicare and Medicard. Bring your HMO card and one valid ID.' },
   { id: 'hours', words: ['open', 'bukas', 'hours', 'oras', 'sunday', 'linggo', 'sarado', 'closed', 'saturday', 'sabado'],
     text: 'We are open Monday to Saturday, 9:00 AM - 6:00 PM. Closed on Sundays.' },
@@ -14,7 +16,7 @@ const FAQ = [
     text: 'Unit 0, Sample Street, Pasig City (fictional address). Street parking is available near the clinic.' },
   { id: 'book', words: ['book', 'booking', 'appointment', 'schedule', 'sched', 'reserve', 'reservation', 'slot'],
     text: 'You can book online in under a minute: choose a service, date and time, then pay a ₱500 deposit with Maya.', link: 'book.html' },
-  { id: 'payment', words: ['gcash', 'maya', 'deposit', 'pay', 'payment', 'bayad', 'cash'],
+  { id: 'payment', words: ['gcash', 'maya', 'deposit', 'pay', 'payment', 'bayad', 'cash', 'card', 'credit', 'debit'],
     text: 'Online bookings need a ₱500 deposit through Maya, deducted from your bill. At the clinic you can pay by cash, card or Maya.' },
   { id: 'comfort', words: ['hurt', 'hurts', 'takot', 'scared', 'nervous', 'anesthesia', 'numb'],
     text: 'Most treatments only feel like mild pressure, and we numb the area when needed. Tell your dentist if you feel nervous.' },

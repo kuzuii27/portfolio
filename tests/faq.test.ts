@@ -21,6 +21,18 @@ describe('FAQ bot', () => {
       expect(answer(q)).toEqual({ kind: 'handoff', reason: 'symptom' });
   });
 
+  it('common pain phrasings go to staff even inside other questions', () => {
+    for (const q of ['my tooth hurts', 'my tooth hurts, magkano extraction?', 'sumasakit ngipin ko, magkano?', 'makirot ngipin ko pa-book po',
+      'sore gums, open ba kayo bukas', 'kumikirot', 'cracked tooth', 'nabasag ngipin ko'])
+      expect(answer(q), q).toEqual({ kind: 'handoff', reason: 'symptom' });
+    expect(id('Does cleaning hurt?')).toBe('comfort');
+  });
+
+  it('card payment questions get the payment answer, not HMO', () => {
+    expect(id('can I pay by card?')).toBe('payment');
+    expect(id('HMO card accepted?')).toBe('hmo');
+  });
+
   it('unknown goes to staff', () => {
     for (const q of ['asdf qwerty', '', '   '])
       expect(answer(q)).toEqual({ kind: 'handoff', reason: 'unknown' });

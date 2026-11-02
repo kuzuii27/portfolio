@@ -103,7 +103,9 @@
     const res = await fetch('/api/demo/maya-checkout', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ service, firstName }),
     });
-    if (res.status === 503) {
+    // Only our own 'no key' answer means pretend; a platform 503 (overload, outage) is a real failure.
+    const fallback = res.status === 503 && (await res.json().catch(() => ({}))).fallback === true;
+    if (fallback) {
       const ref = makeRef();
       state.ref = ref; save();
       location.assign('booking-result.html?status=success&demo=1&ref=' + encodeURIComponent(ref));
@@ -123,6 +125,9 @@
     try { await startDeposit({ service: state.service, firstName: state.firstName }); }
     catch { err('deposit', 'Couldn\u2019t start the payment, please try again.'); pay.disabled = false; }
   });
+
+  // Coming back from Maya with the browser's Back button can restore this page with Pay still disabled.
+  addEventListener('pageshow', (e) => { if (e.persisted) document.getElementById('pay').disabled = false; });
 
   show(0, false);
 })();
