@@ -1,4 +1,5 @@
 import { CaseStudies } from '@/components/CaseStudies';
+import { InquiryForm } from '@/components/InquiryForm';
 import { MenuButton, ThemeToggle } from '@/components/ThemeToggle';
 
 const GITHUB = 'https://github.com/kuzuii27';
@@ -103,7 +104,7 @@ export default function Home() {
                 <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12v9H8l-4 3z" /></svg>Prefer a call or Viber? Choose it under preferred contact.</li>
               </ul>
             </div>
-            <div className="panel"><div id="inquiry-slot" /></div>
+            <div className="panel"><InquiryForm /></div>
           </div>
         </section>
       </main>
