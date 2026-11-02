@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local';
   const now = Date.now();
-  if (!allow(ip, now)) return fail(429, { error: 'Too many requests - try again later.' });
+  if (!allow(ip, now, undefined, undefined, false)) return fail(429, { error: 'Too many requests - try again later.' });
 
   let fields: InquiryFields;
   const images: ImageFile[] = [];
@@ -36,5 +36,6 @@ export async function POST(request: Request) {
     console.error('inquiry send failed', ref, err instanceof Error ? err.name : 'unknown'); // never log credentials or visitor data
     return fail(502, { error: 'Could not send right now - please try again.' });
   }
+  allow(ip, now); // only delivered inquiries count toward the hourly limit
   return Response.json({ ok: true, ref });
 }

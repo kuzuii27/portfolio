@@ -62,6 +62,13 @@ describe('POST /api/inquiry', () => {
     expect(statuses[5]).toBe(429);
   });
 
+  it('does not use up the limit on sends that failed', async () => {
+    mocked.mockRejectedValue(new Error('smtp down'));
+    for (let i = 0; i < 5; i++) expect((await POST(request(payload(), '10.8.8.8', false))).status).toBe(502);
+    mocked.mockResolvedValue(undefined);
+    expect((await POST(request(payload(), '10.8.8.8', false))).status).toBe(200);
+  });
+
   it('returns 502 without internals when sending fails', async () => {
     mocked.mockRejectedValue(new Error('SMTP auth failed for owner@example.com'));
     const res = await POST(request(payload()));

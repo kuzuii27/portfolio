@@ -89,7 +89,6 @@ export function InquiryForm() {
 
   const brand = color === 'custom' ? custom : isHex(color) ? color : '';
   useEffect(() => { startedAt.current = Date.now(); }, []);
-  useEffect(() => { imgsRef.current = imgs; }, [imgs]);
   useEffect(() => { if (done) document.getElementById('ok-title')?.focus(); }, [done]);
 
   // Hero / nav buttons carry data-inquire="project|job": preselect the type.
@@ -106,30 +105,34 @@ export function InquiryForm() {
     return () => document.removeEventListener('click', onClick);
   }, []);
 
+  // Single source of truth for the image list: the async compression queue and the
+  // remove/caption handlers all read and write imgsRef, so no one writes back a stale copy.
+  const updateImgs = (fn: (list: Img[]) => Img[]) => { imgsRef.current = fn(imgsRef.current); setImgs(imgsRef.current); };
+
   const addImages = (list: File[]) => {
     queue.current = queue.current.then(async () => { // serialised so the 3-image limit holds across fast drops
       const errs: string[] = [];
-      const next = [...imgsRef.current];
       for (const f of list) {
         if (!f.type.startsWith('image/')) { errs.push(`"${f.name}" is not an image. Use JPG, PNG or WebP.`); continue; }
-        if (next.length >= LIMITS.maxImages) { errs.push(`"${f.name}" was not added: the limit is 3 images.`); continue; }
+        if (imgsRef.current.length >= LIMITS.maxImages) { errs.push(`"${f.name}" was not added: the limit is 3 images.`); continue; }
         if (f.size > MAX_IN) { errs.push(`"${f.name}" is ${kb(f.size)}. The limit is 5 MB per image.`); continue; }
         let blob: Blob, resized: boolean;
         try { [blob, resized] = await compress(f); } catch { errs.push(`"${f.name}" could not be read as an image.`); continue; }
         const kept = !resized && f.size <= blob.size && ['image/jpeg', 'image/png', 'image/webp'].includes(f.type);
         if (kept) blob = f;
-        if (next.reduce((t, i) => t + i.blob.size, 0) + blob.size > LIMITS.maxTotalBytes) { errs.push(`"${f.name}" would take the total over 4 MB.`); continue; }
-        next.push({ id: ++nextId.current, name: f.name, orig: f.size, blob, kept, url: URL.createObjectURL(blob), caption: '' });
+        const cur = imgsRef.current; // re-read after the await: the visitor may have removed images meanwhile
+        if (cur.length >= LIMITS.maxImages) { errs.push(`"${f.name}" was not added: the limit is 3 images.`); continue; }
+        if (cur.reduce((t, i) => t + i.blob.size, 0) + blob.size > LIMITS.maxTotalBytes) { errs.push(`"${f.name}" would take the total over 4 MB.`); continue; }
+        const img = { id: ++nextId.current, name: f.name, orig: f.size, blob, kept, url: URL.createObjectURL(blob), caption: '' };
+        updateImgs((l) => [...l, img]);
       }
-      imgsRef.current = next;
-      setImgs(next);
       setFileErr(errs.join(' '));
     });
   };
   const removeImg = (id: number) => {
-    const img = imgs.find((i) => i.id === id);
+    const img = imgsRef.current.find((i) => i.id === id);
     if (img) URL.revokeObjectURL(img.url);
-    setImgs(imgs.filter((i) => i.id !== id));
+    updateImgs((l) => l.filter((i) => i.id !== id));
     setFileErr('');
     document.getElementById('pick')?.focus();
   };
@@ -139,7 +142,7 @@ export function InquiryForm() {
     const s = (k: string) => String(fd.get(k) ?? '');
     return {
       type, name: s('name'), email: s('email'), phone: s('phone'), preferredContact: contact, message: s('message'),
-      consent: fd.get('consent') === 'on', website: s('website'), startedAt: startedAt.current,
+      consent: fd.get('consent') === 'on', website: s('hp_x'), startedAt: startedAt.current,
       ...(type === 'project'
         ? { projectType: s('projectType'), budget: s('budget'), timeline: s('timeline'), color: brand || undefined, font, captions: imgs.map((i) => i.caption) }
         : { company: s('company'), role: s('role'), employmentType: s('employmentType'), workSetup: s('workSetup'), salary: s('salary') }),
@@ -185,7 +188,7 @@ export function InquiryForm() {
 
   const reset = () => {
     imgs.forEach((i) => URL.revokeObjectURL(i.url));
-    setImgs([]); setErrors({}); setBanner(''); setFileErr(''); setColor('none'); setFont('none'); setContact('email'); setCount(0);
+    updateImgs(() => []); setErrors({}); setBanner(''); setFileErr(''); setColor('none'); setFont('none'); setContact('email'); setCount(0);
     startedAt.current = Date.now();
     setDone(null);
   };
@@ -275,7 +278,7 @@ export function InquiryForm() {
                       <div className="t-info"><b>{i.name}</b><span className="mono">{kb(i.orig)} → {i.kept ? 'kept original (already small)' : `compressed to ${kb(i.blob.size)}`}</span>
                         <label className="sr" htmlFor={`cap-${i.id}`}>What image {n + 1} shows (optional)</label>
                         <input id={`cap-${i.id}`} maxLength={120} placeholder="What this shows" value={i.caption}
-                          onChange={(e) => setImgs(imgs.map((x) => (x.id === i.id ? { ...x, caption: e.target.value } : x)))} /></div>
+                          onChange={(e) => { const caption = e.target.value; updateImgs((l) => l.map((x) => (x.id === i.id ? { ...x, caption } : x))); }} /></div>
                       <button type="button" className="btn btn-ghost icon-btn" aria-label={`Remove ${i.name}`} onClick={() => removeImg(i.id)}>
                         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg></button>
                     </li>
@@ -315,7 +318,7 @@ export function InquiryForm() {
         <div className="field full"><label htmlFor="f-phone">Phone <span className="opt">{contact === 'email' ? '(optional)' : `(required for ${contact === 'viber' ? 'Viber' : 'phone'})`}</span></label>
           <input id="f-phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="09XX XXX XXXX" {...inv('phone')} />{err('phone')}</div>
 
-        <div className="hp" aria-hidden="true"><label htmlFor="f-website">Website</label><input id="f-website" name="website" tabIndex={-1} autoComplete="off" /></div>
+        <div className="hp" aria-hidden="true">{/* honeypot: a name no browser autofills, so real visitors never trip it */}<label htmlFor="f-hp">Leave this empty</label><input id="f-hp" name="hp_x" tabIndex={-1} autoComplete="off" /></div>
 
         <div className="field full">
           <label className="consent" htmlFor="f-consent"><input id="f-consent" name="consent" type="checkbox" {...inv('consent')} />
