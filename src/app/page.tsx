@@ -41,7 +41,7 @@ export default function Home() {
                 <div><strong>Kuzuii</strong><span>Based in the Philippines</span></div>
               </div>
               <h1 id="hero-title">Full-stack developer. <span>I build high-impact, practical apps that solve real problems.</span></h1>
-              <p className="lede">Backend first with C#, ASP.NET and SQL Server, plus React, plain JavaScript or Flutter when the job needs a front end or a phone app.</p>
+              <p className="lede">Strongest in C#, ASP.NET and SQL Server, and always growing: React, Next.js, Flutter and Python when the job needs them, learned by building.</p>
               <div className="ctas">
                 <a className="btn btn-primary" href="#contact" data-inquire="project">Start a project<Arrow /></a>
                 <a className="btn btn-ghost" href="#contact" data-inquire="job">Hiring? Let&apos;s talk</a>
@@ -92,7 +92,7 @@ export default function Home() {
             <h2 id="about-title">About me</h2>
             <div>
               <p>I&apos;m Kuzuii, a full-stack developer based in the Philippines. I&apos;ve worked as IT support and in-house developer at <strong>a GPS fleet-telematics company</strong>, building internal tools and a field technicians&apos; app, and as a software developer intern at a fintech company, building quotation and cost-calculation tools in C#, ASP.NET, Azure and SQL Server. I finished my BS in Information Technology in 2026.</p>
-              <p>My strongest side is the backend: <strong>C#, ASP.NET MVC and Core, SQL Server and the CQRS pattern</strong>. I also build frontends in React or plain HTML, CSS and JavaScript, and Android apps in Flutter.</p>
+              <p>My strongest side is the backend: <strong>C#, ASP.NET MVC and Core, SQL Server and the CQRS pattern</strong>. But I&apos;m still learning and don&apos;t stay in one lane: I&apos;ve picked up React, Next.js, Flutter and Python automation by shipping real projects with them, and each new project is a chance to learn the next tool well.</p>
               <p>I like small, practical apps that solve a real problem. I start with the smallest solution that works and check it before it ships. I use AI coding assistants every day and review what they write myself.</p>
             </div>
           </div>

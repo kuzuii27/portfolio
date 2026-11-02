@@ -76,7 +76,7 @@ section{scroll-margin-top:var(--nav-h)}
 .mark{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--fg);color:var(--bg);font:600 14px/1 var(--sans)}
 #nav-links{display:flex;gap:4px;justify-self:center}
 #nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;color:var(--fg-2);font:500 14px/1 var(--sans);text-decoration:none;transition:color .15s,background .15s}
-#nav-links a:hover{color:var(--fg);background:var(--bg-2)}
+#nav-links a:hover{color:var(--fg);background:var(--bg-2);box-shadow:inset 0 -2px 0 var(--fg),var(--ring)}
 .theme-btn .moon{display:none}
 [data-theme=dark] .theme-btn .moon{display:block}
 [data-theme=dark] .theme-btn .sun{display:none}

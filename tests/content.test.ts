@@ -135,4 +135,17 @@ describe('site content', () => {
     expect(cases).toContain('Teltonika Device Provisioning Automation');
     expect(cases).toContain('PyInstaller');
   });
+  it('nav links have a hover that is visible in light mode', () => {
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    expect(css).toMatch(/#nav-links a:hover\{[^}]*box-shadow/);
+  });
+
+  it('About shows growth beyond the backend', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    expect(page).toContain('still learning');
+  });
+
+  it('has a case study on the inquiry-to-website process', () => {
+    expect(readFileSync('src/lib/cases.ts', 'utf8')).toContain('From Inquiry to Finished Website');
+  });
 });

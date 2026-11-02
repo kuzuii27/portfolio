@@ -120,5 +120,27 @@ export const CASES: CaseStudy[] = [
     ],
     "lesson": "The automation sometimes clicked before the configurator had finished loading, so it opened and closed again. Waiting until the window is fully ready, not just visible, fixed it.",
     "svg": "<svg viewBox=\"0 0 400 225\" role=\"img\" aria-label=\"Diagram: GPS tracker plugged in by USB, a Python desktop app replays the configuration steps and saves IMEI and SIM ICCID\">\n      <rect class=\"s-box\" x=\"20\" y=\"78\" width=\"74\" height=\"70\" rx=\"10\"/><circle class=\"s-accf\" cx=\"57\" cy=\"100\" r=\"5\"/><text class=\"s-tb\" x=\"57\" y=\"126\" text-anchor=\"middle\">Tracker</text><text class=\"s-t\" x=\"57\" y=\"140\" text-anchor=\"middle\">USB / COM</text>\n      <path class=\"s-acc\" d=\"M94 113h36\"/><path class=\"s-acc\" d=\"M130 109l6 4-6 4\"/>\n      <rect class=\"s-box\" x=\"138\" y=\"40\" width=\"130\" height=\"146\" rx=\"8\"/><path class=\"s-line\" d=\"M138 60h130\"/><text class=\"s-tb\" x=\"203\" y=\"54\" text-anchor=\"middle\">Provisioner</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"70\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"84\" text-anchor=\"middle\">1 open configurator</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"96\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"110\" text-anchor=\"middle\">2 load .cfg file</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"122\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"136\" text-anchor=\"middle\">3 save to device</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"148\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"162\" text-anchor=\"middle\">4 read IMEI + ICCID</text>\n      <path class=\"s-acc\" d=\"M268 113h36\"/><path class=\"s-acc\" d=\"M304 109l6 4-6 4\"/>\n      <rect class=\"s-box\" x=\"312\" y=\"80\" width=\"70\" height=\"66\" rx=\"8\"/><path class=\"s-line\" d=\"M322 98h50M322 112h50M322 126h50\"/><text class=\"s-t\" x=\"347\" y=\"164\" text-anchor=\"middle\">device log</text></svg>"
+  },
+  {
+    "title": "From Inquiry to Finished Website",
+    "status": "Delivered",
+    "summary": "How a client goes from a first message to a live site: a clickable demo first, then a tested build and a monitored launch.",
+    "stack": [
+      "HTML/CSS/JS demos",
+      "Next.js",
+      "Vercel",
+      "Gmail",
+      "Maya"
+    ],
+    "problem": "Clients often only know what they want once they see it. Changing a finished site is slow and expensive; changing a demo is cheap.",
+    "built": [
+      "1. Inquiry: the form on this site emails me the project type, level, colour, font and sample images, so I start with real details.",
+      "2. Demo: within days I send a throwaway offline demo (one zip, opens with a double click). Bigger clients get two design variants side by side.",
+      "3. Approval: the client clicks through, asks for changes and picks a variant. Changes happen here, before any production code.",
+      "4. Build: a written plan, then the real site in small tested steps (forms, payments, admin portal as the level needs).",
+      "5. Test and launch: real emails and sandbox payments are tried end to end, then the site goes live on its own domain and every update redeploys automatically."
+    ],
+    "lesson": "Showing a clickable demo before writing production code turns 'I'll know it when I see it' into a quick yes or no, and saves both sides a rebuild.",
+    "svg": "<svg viewBox=\"0 0 400 225\" role=\"img\" aria-label=\"Timeline: inquiry, offline demo, approval, build, test, launch\">\n      <path class=\"s-line\" d=\"M40 112h320\"/>\n      <circle class=\"s-accf\" cx=\"40\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"40\" y=\"88\" text-anchor=\"middle\">Inquiry</text>\n      <circle class=\"s-ink\" cx=\"104\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"104\" y=\"146\" text-anchor=\"middle\">Demo</text>\n      <circle class=\"s-ink\" cx=\"168\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"168\" y=\"88\" text-anchor=\"middle\">Approval</text>\n      <circle class=\"s-ink\" cx=\"232\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"232\" y=\"146\" text-anchor=\"middle\">Build</text>\n      <circle class=\"s-ink\" cx=\"296\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"296\" y=\"88\" text-anchor=\"middle\">Test</text>\n      <circle class=\"s-accf\" cx=\"360\" cy=\"112\" r=\"8\"/><text class=\"s-tb\" x=\"360\" y=\"146\" text-anchor=\"middle\">Launch</text>\n      <text class=\"s-t\" x=\"200\" y=\"196\" text-anchor=\"middle\">changes happen on the demo, not on production code</text></svg>"
   }
 ];
