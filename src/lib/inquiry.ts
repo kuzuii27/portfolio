@@ -48,8 +48,11 @@ export function isRealImage(img: ImageFile): boolean {
 
 export function validateInquiry(f: InquiryFields, images: ImageFile[], now: number): Result<InquiryFields> {
   const errors: Record<string, string> = {};
-  const t = (s?: string) => (s ?? '').trim();
-  const v: InquiryFields = { ...f, name: t(f.name), email: t(f.email), message: t(f.message), phone: t(f.phone) || undefined };
+  const t = (s?: unknown) => (typeof s === 'string' ? s.trim() : '');
+  const v: InquiryFields = {
+    ...f, name: t(f.name), email: t(f.email), message: t(f.message), phone: t(f.phone) || undefined,
+    captions: Array.isArray(f.captions) ? f.captions.slice(0, LIMITS.maxImages).map((c) => t(c).slice(0, 200)) : undefined,
+  };
 
   if (!v.name || v.name.length > LIMITS.nameMax || hasLineBreak(f.name)) errors.name = 'Enter your name.';
   if (!EMAIL.test(v.email) || hasLineBreak(f.email)) errors.email = 'Enter a valid email address.';

@@ -51,6 +51,12 @@ describe('validateInquiry', () => {
   it('requires project type, budget and timeline for a project', () =>
     expect(Object.keys(errors(project({ projectType: '', budget: '', timeline: '' })))).toEqual(expect.arrayContaining(['projectType', 'budget', 'timeline'])));
   it('rejects a colour that is not #rrggbb', () => expect(errors(project({ color: 'red' }))).toHaveProperty('color'));
+  it('treats non-string fields as missing instead of crashing', () =>
+    expect(errors(project({ name: 123 as unknown as string, message: {} as unknown as string }))).toMatchObject({ name: expect.any(String), message: expect.any(String) }));
+  it('cleans captions to at most 3 short strings', () => {
+    const r = validateInquiry(project({ captions: ['ok', 5, 'x'.repeat(500), 'four'] as unknown as string[] }), [], NOW);
+    expect(r.ok && r.value.captions).toEqual(['ok', '', 'x'.repeat(200)]);
+  });
   it('accepts a #rrggbb colour', () => expect(errors(project({ color: '#0d9488' }))).not.toHaveProperty('color'));
 });
 
