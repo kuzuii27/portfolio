@@ -236,6 +236,7 @@ export function InquiryForm() {
           </fieldset>
         ) : (
           <fieldset><legend className="sr">Job details</legend>
+            <p className="resume-dl"><a className="btn btn-ghost" href="/Kuzui-Santillan-Resume.pdf" download>Download my resume (PDF)</a></p>
             <div className="field"><label htmlFor="f-company">Company</label><input id="f-company" name="company" autoComplete="organization" {...inv('company')} />{err('company')}</div>
             <div className="field"><label htmlFor="f-role">Role title</label><input id="f-role" name="role" placeholder="e.g. .NET Developer" {...inv('role')} />{err('role')}</div>
             <div className="field"><label htmlFor="f-emp">Employment type</label>

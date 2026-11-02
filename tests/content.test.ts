@@ -32,4 +32,17 @@ describe('site content', () => {
     const withoutLinks = page.replaceAll('https://github.com/kuzuii27', '').replaceAll('github.com/kuzuii27', '');
     expect(withoutLinks).not.toMatch(/kuzuii27/);
   });
+  it('offers the web resume PDF in job mode, without phone numbers', () => {
+    const form = readFileSync('src/components/InquiryForm.tsx', 'utf8');
+    expect(form).toMatch(/href="\/Kuzui-Santillan-Resume\.pdf"[^>]*download/);
+    const pdf = readFileSync('public/Kuzui-Santillan-Resume.pdf');
+    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.includes('09929469627') || pdf.includes('09072734117')).toBe(false);
+  });
+
+  it('matches the resume: IT support + dev at the GPS company, developer intern at the fintech', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    expect(page).toContain('IT support and in-house developer');
+    expect(page).toContain('software developer intern');
+  });
 });
