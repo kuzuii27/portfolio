@@ -7,6 +7,11 @@
   try { state = JSON.parse(sessionStorage.getItem(KEY) || '{}'); } catch {}
   const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 
+  // Sample availability (demo): fixed per date so the same date always looks the same. A real site reads the clinic's calendar.
+  const seed = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const fullyBooked = (isoDate) => seed(isoDate) % 4 === 0;
+  const slotTaken = (isoDate, hour) => seed(isoDate + hour) % 3 === 0;
+
   // Next 14 days from tomorrow, clinic closed on Sundays.
   const pad = (n) => String(n).padStart(2, '0');
   const iso = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -15,13 +20,22 @@
     const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + i);
     if (d.getDay() === 0) continue;
     const label = d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
-    dates.insertAdjacentHTML('beforeend', '<label class="opt"><input type="radio" name="date" value="' + iso(d) + '"><span><b>' + label + '</b></span></label>');
+    const full = fullyBooked(iso(d));
+    dates.insertAdjacentHTML('beforeend', '<label class="opt' + (full ? ' off' : '') + '"><input type="radio" name="date" value="' + iso(d) + '"' + (full ? ' disabled' : '') +
+      '><span><b>' + label + '</b><small>' + (full ? 'Fully booked' : 'Available') + '</small></span></label>');
   }
   const times = document.getElementById('times');
-  for (let h = 9; h <= 17; h++) {
-    const label = (h > 12 ? h - 12 : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
-    times.insertAdjacentHTML('beforeend', '<label class="opt"><input type="radio" name="time" value="' + label + '"><span><b>' + label + '</b></span></label>');
-  }
+  const renderTimes = (isoDate) => {
+    times.textContent = '';
+    for (let h = 9; h <= 17; h++) {
+      const label = (h > 12 ? h - 12 : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
+      const taken = isoDate && slotTaken(isoDate, h);
+      times.insertAdjacentHTML('beforeend', '<label class="opt' + (taken ? ' off' : '') + '"><input type="radio" name="time" value="' + label + '"' + (taken ? ' disabled' : '') +
+        '><span><b>' + label + '</b><small>' + (taken ? 'Taken' : 'Open') + '</small></span></label>');
+    }
+  };
+  renderTimes(state.date);
+  dates.addEventListener('change', (e) => { if (e.target.name === 'date') { renderTimes(e.target.value); delete state.time; } });
 
   // Restore earlier choices.
   for (const k of ['service', 'date', 'time']) {

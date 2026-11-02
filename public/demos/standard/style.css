@@ -4,7 +4,8 @@ body{margin:0;font:16px/1.65 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif
 img{max-width:100%;height:auto;display:block}
 a{color:var(--teal)}
 :focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1360px;margin:0 auto;padding:0 clamp(20px,3vw,40px)}
+.top .wrap{max-width:none}
 .narrow{max-width:760px}
 h1,h2,h3{line-height:1.2;color:#102a43}
 h1{font-size:clamp(32px,5vw,48px);margin:0 0 12px}
