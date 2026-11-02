@@ -92,4 +92,11 @@ describe('site content', () => {
     expect(total).toBeGreaterThan(0);
     expect(total).toBeLessThanOrEqual(1_572_864);
   });
+  it('standard demo has its five pages, each linking the other four', () => {
+    const pages = ['index', 'services', 'dentists', 'faq', 'contact'];
+    for (const p of pages) {
+      const html = readFileSync(`public/demos/standard/${p}.html`, 'utf8');
+      for (const other of pages.filter((o) => o !== p)) expect(html, `${p} -> ${other}`).toContain(`href="${other}.html"`);
+    }
+  });
 });

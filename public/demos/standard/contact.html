@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Send an inquiry to Ngiti Dental Clinic, Pasig.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/standard/style.css">
+</head>
+<body data-level="standard">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>5 pages: Home, Services &amp; prices, Dentists, FAQ, Contact</li>
+    <li>HMO list, gallery, testimonials and FAQ</li>
+    <li>Inquiry form with checks (in this demo nothing is sent)</li>
+    <li>Polished brand style and a mobile menu; works well on phones</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Google Search and Google Maps business listing set up</li>
+    <li>Visitor stats (analytics)</li>
+    <li>Spam protection on the form</li>
+    <li>Page titles and descriptions on every page</li>
+  </ul>
+  <h3>Not included</h3>
+  <ul>
+    <li>Online booking and payments, chatbot, custom animations</li>
+  </ul>
+</template>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="index.html"><span class="logo-mark" aria-hidden="true">N</span>Ngiti Dental</a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="services.html">Services &amp; prices</a><a href="dentists.html">Dentists</a><a href="faq.html">FAQ</a><a href="contact.html" aria-current="page">Contact</a></nav>
+    <a class="btn btn-small" href="contact.html">Send an inquiry</a>
+  </div>
+</header>
+<main>
+<section class="page-head"><div class="wrap"><h1>Contact us</h1><p>Send an inquiry and we will reply within clinic hours.</p></div></section>
+<section class="sec wrap grid2 contact">
+  <div>
+    <form id="inquiry" novalidate>
+      <div class="f"><label for="c-name">Name</label><input id="c-name" name="name" autocomplete="name" required><p class="ferr" id="e-name"></p></div>
+      <div class="f"><label for="c-phone">Mobile number</label><input id="c-phone" name="phone" type="tel" inputmode="tel" placeholder="09XX XXX XXXX" autocomplete="tel" required><p class="ferr" id="e-phone"></p></div>
+      <div class="f"><label for="c-service">Service</label><select id="c-service" name="service" required><option value="">Choose a service</option><option>Consultation</option><option>Cleaning</option><option>Filling</option><option>Extraction</option><option>Whitening</option><option>Braces</option></select><p class="ferr" id="e-service"></p></div>
+      <div class="f"><label for="c-msg">Message</label><textarea id="c-msg" name="message" rows="4" required></textarea><p class="ferr" id="e-msg"></p></div>
+      <div class="hp" aria-hidden="true"><label for="c-hp">Leave this empty</label><input id="c-hp" name="hp_x" tabindex="-1" autocomplete="off"></div>
+      <button class="btn" type="submit">Send inquiry</button>
+      <p class="ok" id="ok" role="status" tabindex="-1"></p>
+    </form>
+  </div>
+  <div>
+    <h2>Visit us</h2>
+    <p>Unit 0, Sample Street, Pasig City (fictional address)<br><a href="https://www.google.com/maps/search/?api=1&amp;query=Pasig+City" target="_blank" rel="noopener">Open in Google Maps</a></p>
+    <h2>Clinic hours</h2>
+    <p>Monday to Saturday, 9:00 AM - 6:00 PM<br>Closed on Sundays</p>
+    <h2>Call or message</h2>
+    <p><a href="tel:09000000000">0900 000 0000</a> · <a href="viber://chat?number=%2B639000000000">Viber</a></p>
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div><strong>Ngiti Dental Clinic</strong> (fictional)<br>Unit 0, Sample Street, Pasig City<br>0900 000 0000</div>
+    <div><strong>Hours</strong><br>Mon - Sat, 9:00 AM - 6:00 PM<br>Closed on Sundays</div>
+    <div><strong>Pages</strong><br><a href="index.html">Home</a> · <a href="services.html">Services &amp; prices</a> · <a href="dentists.html">Dentists</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a></div>
+  </div>
+</footer>
+<script src="/demos/standard/site.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>
