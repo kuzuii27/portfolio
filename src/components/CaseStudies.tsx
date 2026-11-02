@@ -27,6 +27,7 @@ export function CaseStudies() {
     opener.current = e.currentTarget;
     setActive(c);
     dialog.current?.showModal();
+    if (dialog.current) dialog.current.scrollTop = 0; // focusing the close button scrolls the dialog; start at the top
   };
 
   return (

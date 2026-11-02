@@ -45,4 +45,14 @@ describe('site content', () => {
     expect(page).toContain('IT support and in-house developer');
     expect(page).toContain('software developer intern');
   });
+  it('About does not say I am currently employed', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    const about = page.slice(page.indexOf('id="about"'), page.indexOf('id="contact"'));
+    expect(about).not.toMatch(/currently|I work as|I work at|\bnow\b/i);
+  });
+
+  it('centres the case-study dialog (the CSS reset zeroes the browser default margin)', () => {
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    expect(css).toMatch(/dialog\{[^}]*margin:auto/);
+  });
 });

@@ -87,7 +87,7 @@ export default function Home() {
           <div className="wrap about">
             <h2 id="about-title">About me</h2>
             <div>
-              <p>I&apos;m Kuzuii, a full-stack developer based in the Philippines. I currently work as IT support and in-house developer at <strong>a GPS fleet-telematics company</strong>, where I also build internal tools and a field technicians&apos; app. Before that I was a software developer intern at a fintech company, building quotation and cost-calculation tools in C#, ASP.NET, Azure and SQL Server. I finished my BS in Information Technology in 2026.</p>
+              <p>I&apos;m Kuzuii, a full-stack developer based in the Philippines. I&apos;ve worked as IT support and in-house developer at <strong>a GPS fleet-telematics company</strong>, building internal tools and a field technicians&apos; app, and as a software developer intern at a fintech company, building quotation and cost-calculation tools in C#, ASP.NET, Azure and SQL Server. I finished my BS in Information Technology in 2026.</p>
               <p>My strongest side is the backend: <strong>C#, ASP.NET MVC and Core, SQL Server and the CQRS pattern</strong>. I also build frontends in React or plain HTML, CSS and JavaScript, and Android apps in Flutter.</p>
               <p>I like small, practical apps that solve a real problem. I start with the smallest solution that works and check it before it ships. I use AI coding assistants every day and review what they write myself.</p>
             </div>
