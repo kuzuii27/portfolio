@@ -20,13 +20,15 @@ export default function Home() {
     <>
       <header className="nav">
         <div className="wrap">
-          <a className="brand" href="#top"><span className="mark" aria-hidden="true">K</span>Kuzuii</a>
+          <span className="nav-side" aria-hidden="true" />
           <nav id="nav-links" aria-label="Main">
             <a href="#work">Work</a><a href="#levels">Levels</a><a href="#skills">Skills</a><a href="#about">About</a><a href="#contact">Contact</a>
           </nav>
-          <ThemeToggle />
-          <a className="btn btn-primary" href="#contact" data-inquire="job">Hire me</a>
-          <MenuButton />
+          <div className="nav-actions">
+            <ThemeToggle />
+            <a className="btn btn-primary" href="#contact" data-inquire="job">Hire me</a>
+            <MenuButton />
+          </div>
         </div>
       </header>
 

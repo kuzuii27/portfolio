@@ -121,4 +121,18 @@ describe('site content', () => {
     expect(copy).not.toMatch(/dentist|clinic|HMO|patient/i);
     expect(copy).toContain('any kind of business');
   });
+  it('header has no name or logo, and centres the section links between side columns', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    const header = page.slice(page.indexOf('<header'), page.indexOf('</header>'));
+    expect(header).not.toContain('className="brand"');
+    expect(header).not.toContain('Kuzuii');
+    expect(header).toContain('className="nav-actions"');
+    expect(readFileSync('src/app/globals.css', 'utf8')).toMatch(/\.nav \.wrap\{[^}]*grid-template-columns:1fr auto 1fr/);
+  });
+
+  it('selected work includes the Teltonika provisioning automation', () => {
+    const cases = readFileSync('src/lib/cases.ts', 'utf8');
+    expect(cases).toContain('Teltonika Device Provisioning Automation');
+    expect(cases).toContain('PyInstaller');
+  });
 });

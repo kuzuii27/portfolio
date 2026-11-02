@@ -98,5 +98,27 @@ export const CASES: CaseStudy[] = [
     ],
     "lesson": "Two clear options made the decision easy. The client approved the dark \"live tracking\" variant.",
     "svg": "<svg viewBox=\"0 0 400 225\" role=\"img\" aria-label=\"Two browser mockups side by side; the dark live-tracking variant is marked approved\">\n      <rect class=\"s-box\" x=\"18\" y=\"34\" width=\"170\" height=\"140\" rx=\"8\"/><path class=\"s-line\" d=\"M18 52h170\"/><circle class=\"s-mute\" cx=\"30\" cy=\"43\" r=\"3\"/><circle class=\"s-mute\" cx=\"40\" cy=\"43\" r=\"3\"/>\n      <rect class=\"s-ink\" x=\"32\" y=\"68\" width=\"90\" height=\"10\" rx=\"2\"/><rect class=\"s-mute\" x=\"32\" y=\"86\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"s-mute\" x=\"32\" y=\"98\" width=\"100\" height=\"6\" rx=\"2\"/>\n      <rect class=\"s-soft\" x=\"32\" y=\"116\" width=\"66\" height=\"44\" rx=\"4\"/><rect class=\"s-soft\" x=\"106\" y=\"116\" width=\"66\" height=\"44\" rx=\"4\"/>\n      <text class=\"s-t\" x=\"103\" y=\"198\" text-anchor=\"middle\">Variant A</text>\n      <rect x=\"212\" y=\"34\" width=\"170\" height=\"140\" rx=\"8\" fill=\"#0a0a0a\" stroke=\"#333\"/><path d=\"M212 52h170\" stroke=\"#333\"/><circle cx=\"224\" cy=\"43\" r=\"3\" fill=\"#333\"/><circle cx=\"234\" cy=\"43\" r=\"3\" fill=\"#333\"/>\n      <path d=\"M226 150 C250 120 270 132 292 104 S334 84 366 70\" stroke=\"#52a8ff\" stroke-width=\"2\" fill=\"none\"/>\n      <circle cx=\"226\" cy=\"150\" r=\"4\" fill=\"#52a8ff\"/><circle cx=\"366\" cy=\"70\" r=\"5\" fill=\"#52a8ff\"/><circle cx=\"300\" cy=\"140\" r=\"3.5\" fill=\"#ededed\"/><circle cx=\"250\" cy=\"80\" r=\"3.5\" fill=\"#ededed\"/>\n      <rect x=\"226\" y=\"62\" width=\"60\" height=\"8\" rx=\"2\" fill=\"#ededed\"/>\n      <circle class=\"s-accf\" cx=\"374\" cy=\"36\" r=\"13\"/><path d=\"M368 36l4 4 8-8\" stroke=\"#fff\" stroke-width=\"2\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n      <text class=\"s-t\" x=\"297\" y=\"198\" text-anchor=\"middle\">Variant B · approved</text></svg>"
+  },
+  {
+    "title": "Teltonika Device Provisioning Automation",
+    "status": "Built",
+    "summary": "A Windows desktop tool that configures GPS trackers on its own: plug a device in and it loads the right settings, writes them and records the device's IMEI and SIM number.",
+    "stack": [
+      "Python",
+      "tkinter",
+      "pywinauto",
+      "pywin32",
+      "SQLite",
+      "PyInstaller"
+    ],
+    "problem": "Every new GPS tracker had to be set up by hand in the vendor's configurator: open it, load the config file, save it to the device and copy the IMEI and SIM ICCID. Slow and easy to get wrong across many devices.",
+    "built": [
+      "A tkinter desktop app that waits for a tracker on USB, opens the vendor configurator and replays the setup steps.",
+      "A macro recorder that stores clicks and keys as screen percentages, so one recording works on any screen size.",
+      "Reads the IMEI and SIM ICCID after saving and keeps a device log in a local database.",
+      "Packaged as a single .exe with PyInstaller, plus a setup script for the team's PCs."
+    ],
+    "lesson": "The automation sometimes clicked before the configurator had finished loading, so it opened and closed again. Waiting until the window is fully ready, not just visible, fixed it.",
+    "svg": "<svg viewBox=\"0 0 400 225\" role=\"img\" aria-label=\"Diagram: GPS tracker plugged in by USB, a Python desktop app replays the configuration steps and saves IMEI and SIM ICCID\">\n      <rect class=\"s-box\" x=\"20\" y=\"78\" width=\"74\" height=\"70\" rx=\"10\"/><circle class=\"s-accf\" cx=\"57\" cy=\"100\" r=\"5\"/><text class=\"s-tb\" x=\"57\" y=\"126\" text-anchor=\"middle\">Tracker</text><text class=\"s-t\" x=\"57\" y=\"140\" text-anchor=\"middle\">USB / COM</text>\n      <path class=\"s-acc\" d=\"M94 113h36\"/><path class=\"s-acc\" d=\"M130 109l6 4-6 4\"/>\n      <rect class=\"s-box\" x=\"138\" y=\"40\" width=\"130\" height=\"146\" rx=\"8\"/><path class=\"s-line\" d=\"M138 60h130\"/><text class=\"s-tb\" x=\"203\" y=\"54\" text-anchor=\"middle\">Provisioner</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"70\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"84\" text-anchor=\"middle\">1 open configurator</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"96\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"110\" text-anchor=\"middle\">2 load .cfg file</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"122\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"136\" text-anchor=\"middle\">3 save to device</text>\n      <rect class=\"s-soft\" x=\"150\" y=\"148\" width=\"106\" height=\"20\" rx=\"3\"/><text class=\"s-t\" x=\"203\" y=\"162\" text-anchor=\"middle\">4 read IMEI + ICCID</text>\n      <path class=\"s-acc\" d=\"M268 113h36\"/><path class=\"s-acc\" d=\"M304 109l6 4-6 4\"/>\n      <rect class=\"s-box\" x=\"312\" y=\"80\" width=\"70\" height=\"66\" rx=\"8\"/><path class=\"s-line\" d=\"M322 98h50M322 112h50M322 126h50\"/><text class=\"s-t\" x=\"347\" y=\"164\" text-anchor=\"middle\">device log</text></svg>"
   }
 ];
