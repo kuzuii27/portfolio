@@ -38,7 +38,7 @@ export default function Home() {
                 <span className="avatar" aria-hidden="true">K</span>
                 <div><strong>Kuzuii</strong><span>Based in the Philippines</span></div>
               </div>
-              <h1 id="hero-title">Full-stack .NET developer. <span>I build small, practical apps that solve real problems.</span></h1>
+              <h1 id="hero-title">Full-stack developer. <span>I build high-impact, practical apps that solve real problems.</span></h1>
               <p className="lede">Backend first with C#, ASP.NET and SQL Server, plus React, plain JavaScript or Flutter when the job needs a front end or a phone app.</p>
               <div className="ctas">
                 <a className="btn btn-primary" href="#contact" data-inquire="project">Start a project<Arrow /></a>
@@ -59,7 +59,7 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head">
               <h2 id="work-title">Selected work</h2>
-              <p>Five projects, described plainly. Client and employer names are left out on purpose.</p>
+              <p></p>
             </div>
             <CaseStudies />
           </div>
