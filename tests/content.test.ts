@@ -55,4 +55,8 @@ describe('site content', () => {
     const css = readFileSync('src/app/globals.css', 'utf8');
     expect(css).toMatch(/dialog\{[^}]*margin:auto/);
   });
+  it('the hero facts do not claim a current job', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    expect(page).not.toContain('<dt>Now</dt>');
+  });
 });

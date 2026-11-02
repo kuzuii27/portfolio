@@ -46,7 +46,6 @@ export default function Home() {
               <p className="avail"><span className="pill blue"><span className="dot" />Open to freelance &amp; full-time</span></p>
             </div>
             <dl className="facts" aria-label="At a glance">
-              <div><dt>Now</dt><dd>IT support and in-house developer at a GPS fleet-telematics company (since May 2026)</dd></div>
               <div><dt>Backend</dt><dd>C#, ASP.NET MVC &amp; Core, SQL Server, CQRS</dd></div>
               <div><dt>Frontend</dt><dd>React, HTML/CSS/JavaScript</dd></div>
               <div><dt>Mobile</dt><dd>Flutter / Dart</dd></div>
