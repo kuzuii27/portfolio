@@ -109,11 +109,16 @@ describe('site content', () => {
     const levels = readFileSync('src/lib/levels.ts', 'utf8');
     expect(levels).toContain('full:');
     expect(readFileSync('src/components/Levels.tsx', 'utf8')).toContain('l.full.map');
-    for (const [id, item] of [['minimum', 'Domain and hosting set up'], ['standard', 'Admin portal to edit pages, prices and photos'], ['high', 'Booking calendar in the admin portal']]) {
+    for (const [id, item] of [['minimum', 'Domain and hosting set up'], ['standard', 'Admin portal to update your own content'], ['high', 'Custom features built around your workflow']]) {
       expect(levels).toContain(item);
       const page = readFileSync(`public/demos/${id}/index.html`, 'utf8');
       expect(page, id).toContain('In the full application');
       expect(page, id).toContain(item);
     }
+  });
+  it('level descriptions are generic, not tied to the clinic sample', () => {
+    const copy = readFileSync('src/lib/levels.ts', 'utf8') + readFileSync('src/components/Levels.tsx', 'utf8');
+    expect(copy).not.toMatch(/dentist|clinic|HMO|patient/i);
+    expect(copy).toContain('any kind of business');
   });
 });
