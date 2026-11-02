@@ -59,4 +59,20 @@ describe('site content', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
     expect(page).not.toContain('<dt>Now</dt>');
   });
+  it('page has a Website levels section with all three demos', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    expect(page).toContain('<Levels />');
+    expect(page).toContain('href="#levels"');
+    const levels = readFileSync('src/components/Levels.tsx', 'utf8');
+    expect(levels).toContain('id="levels"');
+    expect(levels).toContain('LEVELS.map');
+    expect(levels).toMatch(/href=\{l\.demo\}[^>]*target="_blank"/);
+  });
+
+  it('form asks for level, not budget', () => {
+    const form = readFileSync('src/components/InquiryForm.tsx', 'utf8');
+    expect(form).toContain('name="level"');
+    expect(form).not.toContain('name="budget"');
+    expect(form).not.toContain('Budget (PHP)');
+  });
 });

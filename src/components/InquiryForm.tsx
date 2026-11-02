@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LIMITS, validateInquiry, type InquiryFields, type InquiryType } from '@/lib/inquiry';
-import type { Level } from '@/lib/levels';
+import { LEVELS, type Level } from '@/lib/levels';
 
 type Font = NonNullable<InquiryFields['font']>;
 type Contact = InquiryFields['preferredContact'];
@@ -226,10 +226,17 @@ export function InquiryForm() {
               <div className="select"><select id="f-ptype" name="projectType" defaultValue="" {...inv('projectType')}>
                 <option value="">Choose one</option>{['Website', 'Web app', 'Mobile app', 'Internal tool / automation', 'Other'].map((o) => <option key={o}>{o}</option>)}
               </select></div>{err('projectType')}</div>
-            <div className="field"><label htmlFor="f-budget">Budget (PHP)</label>
-              <div className="select"><select id="f-budget" name="budget" defaultValue="" {...inv('budget')}>
-                <option value="">Choose a range</option>{['Below ₱20k', '₱20k-50k', '₱50k-150k', '₱150k+', 'Not sure yet'].map((o) => <option key={o}>{o}</option>)}
-              </select></div>{err('budget')}</div>
+            <div className="field full" role="radiogroup" aria-labelledby="l-level">
+              <p className="label" id="l-level">Website level</p>
+              <div className="level-pick">
+                {LEVELS.map((l) => (
+                  <label key={l.id} className="level-opt">
+                    <input type="radio" name="level" value={l.id} {...inv('level')} />
+                    <span><b>{l.label}</b><small>{l.term}</small>{l.meaning}</span>
+                    <a href={l.demo} target="_blank" rel="noopener">See example<span className="sr"> of the {l.label} level (opens in a new tab)</span></a>
+                  </label>
+                ))}
+              </div>{err('level')}</div>
             <div className="field"><label htmlFor="f-timeline">Timeline</label>
               <div className="select"><select id="f-timeline" name="timeline" defaultValue="" {...inv('timeline')}>
                 <option value="">Choose one</option>{['ASAP', '1-3 months', '3+ months', 'Flexible'].map((o) => <option key={o}>{o}</option>)}
