@@ -93,7 +93,7 @@ export default function Home() {
             <div>
               <p>I&apos;m Kuzuii, a full-stack developer based in the Philippines. I&apos;ve worked as IT support and in-house developer at <strong>a GPS fleet-telematics company</strong>, building internal tools and a field technicians&apos; app, and as a software developer intern at a fintech company, building quotation and cost-calculation tools in C#, ASP.NET, Azure and SQL Server. I finished my BS in Information Technology in 2026.</p>
               <p>My strongest side is the backend: <strong>C#, ASP.NET MVC and Core, SQL Server and the CQRS pattern</strong>. But I&apos;m still learning and don&apos;t stay in one lane: I&apos;ve picked up React, Next.js, Flutter and Python automation by shipping real projects with them, and each new project is a chance to learn the next tool well.</p>
-              <p>I like small, practical apps that solve a real problem. I start with the smallest solution that works and check it before it ships. I use AI coding assistants every day and review what they write myself.</p>
+              <p>I like high-impact, practical apps that solve a real problem. I start with the smallest solution that works and check it before it ships. I use AI coding assistants every day and review what they write myself.</p>
             </div>
           </div>
         </section>
