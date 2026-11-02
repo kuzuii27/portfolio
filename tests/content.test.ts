@@ -148,4 +148,11 @@ describe('site content', () => {
   it('has a case study on the inquiry-to-website process', () => {
     expect(readFileSync('src/lib/cases.ts', 'utf8')).toContain('From Inquiry to Finished Website');
   });
+  it('hero has the friendly robot, decorative and motion-safe', () => {
+    expect(readFileSync('src/app/page.tsx', 'utf8')).toContain('<Robot />');
+    const robot = readFileSync('src/components/Robot.tsx', 'utf8');
+    expect(robot).toContain('aria-hidden="true"');
+    expect(robot).toContain('prefers-reduced-motion');
+    expect(readFileSync('src/app/globals.css', 'utf8')).toMatch(/prefers-reduced-motion:reduce\)\{[^}]*\.robot/);
+  });
 });

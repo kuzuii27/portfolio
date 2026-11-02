@@ -1,4 +1,5 @@
 import { Levels } from '@/components/Levels';
+import { Robot } from '@/components/Robot';
 import { CaseStudies } from '@/components/CaseStudies';
 import { InquiryForm } from '@/components/InquiryForm';
 import { MenuButton, ThemeToggle } from '@/components/ThemeToggle';
@@ -48,12 +49,15 @@ export default function Home() {
               </div>
               <p className="avail"><span className="pill blue"><span className="dot" />Open to freelance &amp; full-time</span></p>
             </div>
+            <div className="hero-side">
+            <Robot />
             <dl className="facts" aria-label="At a glance">
               <div><dt>Backend</dt><dd>C#, ASP.NET MVC &amp; Core, SQL Server, CQRS</dd></div>
               <div><dt>Frontend</dt><dd>React, HTML/CSS/JavaScript</dd></div>
               <div><dt>Mobile</dt><dd>Flutter / Dart</dd></div>
               <div><dt>Works</dt><dd>AI-assisted, every change reviewed by me</dd></div>
             </dl>
+            </div>
           </div>
         </section>
 
