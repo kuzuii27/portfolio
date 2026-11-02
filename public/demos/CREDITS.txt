@@ -1,0 +1,10 @@
+Photos used in the sample clinic demos (fictional business).
+All from Pexels, free to use under the Pexels License: https://www.pexels.com/license/
+
+clinic-interior.webp  https://www.pexels.com/photo/3845723/
+dentist-at-work.webp  https://www.pexels.com/photo/11999471/
+dentist-portrait.webp  https://www.pexels.com/photo/3845736/
+cleaning.webp  https://www.pexels.com/photo/3881170/
+checkup.webp  https://www.pexels.com/photo/4971512/
+dentist-patient.webp  https://www.pexels.com/photo/5622232/
+smile.webp  https://www.pexels.com/photo/7298633/

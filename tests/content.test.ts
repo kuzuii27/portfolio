@@ -21,7 +21,8 @@ const files = (dir: string): string[] =>
 
 describe('site content', () => {
   it('never names employers or clients', () => {
-    const hits = files('src').filter((f) => hasBanned(readFileSync(f, 'utf8')));
+    const text = [...files('src'), ...files('public/demos')].filter((f) => !/\.(webp|png|jpe?g|ico)$/i.test(f));
+    const hits = text.filter((f) => hasBanned(readFileSync(f, 'utf8')));
     expect(hits).toEqual([]);
   });
 
@@ -74,5 +75,21 @@ describe('site content', () => {
     expect(form).toContain('name="level"');
     expect(form).not.toContain('name="budget"');
     expect(form).not.toContain('Budget (PHP)');
+  });
+  it('every demo page has the sample-site bar and checklist', () => {
+    const pages = files('public/demos').filter((f) => f.endsWith('.html'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const f of pages) {
+      const html = readFileSync(f, 'utf8');
+      expect(html, f).toMatch(/data-level="(minimum|standard|high)"/);
+      expect(html, f).toContain('/demos/demo-bar.js');
+      expect(html, f).toContain('id="level-checklist"');
+    }
+  });
+
+  it('demo images stay under 1.5 MB', () => {
+    const total = files('public/demos').filter((f) => f.endsWith('.webp')).reduce((t, f) => t + statSync(f).size, 0);
+    expect(total).toBeGreaterThan(0);
+    expect(total).toBeLessThanOrEqual(1_572_864);
   });
 });

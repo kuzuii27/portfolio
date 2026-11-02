@@ -8,21 +8,21 @@ export const LEVELS: readonly { id: Level; label: string; term: string; meaning:
     label: 'Minimum',
     term: 'MVP (Minimum Viable Product)',
     meaning: 'A basic, functional site built quickly to test an idea or secure an online presence. It has just enough features to be usable.',
-    demo: '/demos/minimum/',
+    demo: '/demos/minimum/index.html',
   },
   {
     id: 'standard',
     label: 'Standard',
     term: 'Production-ready / Standard build',
     meaning: 'A professional, fully optimized business site. It is secure, responsive (looks good on mobile), and built for regular traffic.',
-    demo: '/demos/standard/',
+    demo: '/demos/standard/index.html',
   },
   {
     id: 'high',
     label: 'High quality',
     term: 'Enterprise-grade / Premium build',
     meaning: 'A highly scalable, lightning-fast, custom-designed digital experience. It features top-tier security, deep integrations, and advanced animations.',
-    demo: '/demos/high/',
+    demo: '/demos/high/index.html',
   },
 ];
 
