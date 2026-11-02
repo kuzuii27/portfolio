@@ -9,7 +9,7 @@ let ipN = 0;
 const payload = (o: Record<string, unknown> = {}) => ({
   type: 'project', name: 'Juan Dela Cruz', email: 'juan@example.com', preferredContact: 'email',
   message: 'I need a website for my small bakery in Pasig.', consent: true, website: '', startedAt: Date.now() - 10_000,
-  projectType: 'Website', budget: '₱20k-50k', timeline: '1-3 months', ...o,
+  projectType: 'Website', level: 'standard', timeline: '1-3 months', ...o,
 });
 const request = (p: object, ip = `10.0.0.${++ipN}`, withImage = true) => {
   const fd = new FormData();
@@ -67,6 +67,13 @@ describe('POST /api/inquiry', () => {
     for (let i = 0; i < 5; i++) expect((await POST(request(payload(), '10.8.8.8', false))).status).toBe(502);
     mocked.mockResolvedValue(undefined);
     expect((await POST(request(payload(), '10.8.8.8', false))).status).toBe(200);
+  });
+
+  it('rejects an old cached form that still sends budget, with a level error', async () => {
+    const old = payload({ budget: '₱20k-50k' }) as Record<string, unknown>; delete old.level;
+    const res = await POST(request(old));
+    expect(res.status).toBe(400);
+    expect((await res.json()).errors.level).toBeTruthy();
   });
 
   it('returns 502 without internals when sending fails', async () => {

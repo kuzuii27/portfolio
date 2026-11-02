@@ -5,7 +5,7 @@ const NOW = 1_800_000_000_000;
 const project = (o: Partial<InquiryFields> = {}): InquiryFields => ({
   type: 'project', name: 'Juan Dela Cruz', email: 'juan@example.com', preferredContact: 'email',
   message: 'I need a website for my small bakery in Pasig.', consent: true, website: '', startedAt: NOW - 10_000,
-  projectType: 'Website', budget: '₱20k-50k', timeline: '1-3 months', ...o,
+  projectType: 'Website', level: 'standard', timeline: '1-3 months', ...o,
 });
 const job = (o: Partial<InquiryFields> = {}): InquiryFields => ({
   type: 'job', name: 'Ana Reyes', email: 'ana@example.com', preferredContact: 'email',
@@ -48,8 +48,14 @@ describe('validateInquiry', () => {
   });
   it('requires company and role for a job', () =>
     expect(Object.keys(errors(job({ company: '', role: '' })))).toEqual(expect.arrayContaining(['company', 'role'])));
-  it('requires project type, budget and timeline for a project', () =>
-    expect(Object.keys(errors(project({ projectType: '', budget: '', timeline: '' })))).toEqual(expect.arrayContaining(['projectType', 'budget', 'timeline'])));
+  it('requires project type, level and timeline for a project', () =>
+    expect(Object.keys(errors(project({ projectType: '', level: '' as never, timeline: '' })))).toEqual(expect.arrayContaining(['projectType', 'level', 'timeline'])));
+  it('requires a valid level for a project', () => {
+    for (const level of ['', 'cheap', 5]) expect(errors(project({ level: level as never }))).toMatchObject({ level: 'Choose a level.' });
+    const old = { ...project(), budget: '₱20k-50k' } as Record<string, unknown>; delete old.level;
+    expect(errors(old as unknown as InquiryFields)).toMatchObject({ level: 'Choose a level.' });
+    expect(errors(project({ level: 'high' }))).not.toHaveProperty('level');
+  });
   it('rejects a colour that is not #rrggbb', () => expect(errors(project({ color: 'red' }))).toHaveProperty('color'));
   it('treats non-string fields as missing instead of crashing', () =>
     expect(errors(project({ name: 123 as unknown as string, message: {} as unknown as string }))).toMatchObject({ name: expect.any(String), message: expect.any(String) }));

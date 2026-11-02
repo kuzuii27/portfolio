@@ -5,7 +5,7 @@ import type { ImageFile, InquiryFields } from '@/lib/inquiry';
 const base: InquiryFields = {
   type: 'project', name: 'Juan Dela Cruz', email: 'juan@example.com', preferredContact: 'viber', phone: '09171234567',
   message: 'I need a website for my bakery.', consent: true, website: '', startedAt: 0,
-  projectType: 'Website', budget: '₱20k-50k', timeline: '1-3 months', color: '#0d9488', font: 'technical',
+  projectType: 'Website', level: 'standard', timeline: '1-3 months', color: '#0d9488', font: 'technical',
   captions: ['Logo I like'],
 };
 const img: ImageFile = { name: 'IMG_001.JPG', type: 'image/jpeg', bytes: new Uint8Array([0xff, 0xd8, 0xff, 1]) };
@@ -17,6 +17,15 @@ describe('buildEmail', () => {
   it('uses the job subject for job inquiries', () => {
     const job: InquiryFields = { ...base, type: 'job', company: 'Example Corp', role: '.NET Developer', employmentType: 'Full-time', workSetup: 'Remote' };
     expect(buildEmail(job, [], 'INQ-20261102-AB12').subject).toBe('New job inquiry - INQ-20261102-AB12');
+  });
+
+  it('shows the chosen level instead of a budget', () => {
+    const m = buildEmail(base, [], 'R');
+    for (const body of [m.html, m.text]) {
+      expect(body).toContain('Level');
+      expect(body).toContain('Standard (Production-ready / Standard build)');
+      expect(body).not.toContain('Budget');
+    }
   });
 
   it('sets Reply-To to the visitor', () => expect(buildEmail(base, [], 'R').replyTo).toBe('juan@example.com'));
@@ -46,7 +55,7 @@ describe('buildEmail', () => {
 
   it('puts every filled field label in the plain-text version', () => {
     const t = buildEmail(base, [], 'R').text;
-    for (const label of ['Name', 'Email', 'Phone', 'Preferred contact', 'Project type', 'Budget', 'Timeline', 'Brand colour', 'Font style', 'Message'])
+    for (const label of ['Name', 'Email', 'Phone', 'Preferred contact', 'Project type', 'Level', 'Timeline', 'Brand colour', 'Font style', 'Message'])
       expect(t).toContain(label);
   });
 });

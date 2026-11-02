@@ -1,5 +1,7 @@
 // Inquiry validation shared by the form (pre-check) and /api/inquiry (source of truth).
 
+import { isLevel, type Level } from '@/lib/levels';
+
 export type InquiryType = 'project' | 'job';
 
 export interface InquiryFields {
@@ -13,7 +15,7 @@ export interface InquiryFields {
   website: string; // honeypot: humans never see it
   startedAt: number; // ms timestamp when the form was opened
   projectType?: string;
-  budget?: string;
+  level?: Level;
   timeline?: string;
   color?: string;
   font?: 'modern' | 'classic' | 'friendly' | 'technical' | 'none';
@@ -66,7 +68,7 @@ export function validateInquiry(f: InquiryFields, images: ImageFile[], now: numb
 
   if (v.type === 'project') {
     if (!t(v.projectType)) errors.projectType = 'Choose a project type.';
-    if (!t(v.budget)) errors.budget = 'Choose a budget range.';
+    if (!isLevel(v.level)) errors.level = 'Choose a level.';
     if (!t(v.timeline)) errors.timeline = 'Choose a timeline.';
     if (v.color && !HEX.test(v.color)) errors.color = 'Pick a colour from the list.';
   } else if (v.type === 'job') {

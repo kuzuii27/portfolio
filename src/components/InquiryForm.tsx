@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LIMITS, validateInquiry, type InquiryFields, type InquiryType } from '@/lib/inquiry';
+import type { Level } from '@/lib/levels';
 
 type Font = NonNullable<InquiryFields['font']>;
 type Contact = InquiryFields['preferredContact'];
@@ -17,7 +18,7 @@ const FONTS: Record<Font, { label: string; stack: string; sample: string; note: 
   none: { label: 'No preference', stack: 'var(--sans)', sample: 'Aa', note: "I'll suggest one" },
 };
 // Field order = focus order for the first error.
-const ORDER = ['name', 'email', 'projectType', 'budget', 'timeline', 'company', 'role', 'employmentType', 'workSetup', 'message', 'images', 'color', 'phone', 'consent'];
+const ORDER = ['name', 'email', 'projectType', 'level', 'timeline', 'company', 'role', 'employmentType', 'workSetup', 'message', 'images', 'color', 'phone', 'consent'];
 
 const kb = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
 const isHex = (c: string) => /^#[0-9a-f]{6}$/i.test(c);
@@ -144,7 +145,7 @@ export function InquiryForm() {
       type, name: s('name'), email: s('email'), phone: s('phone'), preferredContact: contact, message: s('message'),
       consent: fd.get('consent') === 'on', website: s('hp_x'), startedAt: startedAt.current,
       ...(type === 'project'
-        ? { projectType: s('projectType'), budget: s('budget'), timeline: s('timeline'), color: brand || undefined, font, captions: imgs.map((i) => i.caption) }
+        ? { projectType: s('projectType'), level: s('level') as Level, timeline: s('timeline'), color: brand || undefined, font, captions: imgs.map((i) => i.caption) }
         : { company: s('company'), role: s('role'), employmentType: s('employmentType'), workSetup: s('workSetup'), salary: s('salary') }),
     };
   };

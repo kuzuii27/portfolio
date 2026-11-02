@@ -1,4 +1,5 @@
 import type { ImageFile, InquiryFields } from '@/lib/inquiry';
+import { LEVELS } from '@/lib/levels';
 
 export interface Mail {
   subject: string;
@@ -25,7 +26,7 @@ export function buildEmail(f: InquiryFields, images: ImageFile[], ref: string): 
     ...(f.type === 'project'
       ? ([
           ['Project type', f.projectType],
-          ['Budget', f.budget],
+          ['Level', ((l) => (l ? `${l.label} (${l.term})` : undefined))(LEVELS.find((x) => x.id === f.level))],
           ['Timeline', f.timeline],
           ['Brand colour', f.color],
           ['Font style', f.font ? FONT_LABELS[f.font] : undefined],
