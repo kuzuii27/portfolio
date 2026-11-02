@@ -322,7 +322,7 @@ export function InquiryForm() {
 
         <div className="field full">
           <label className="consent" htmlFor="f-consent"><input id="f-consent" name="consent" type="checkbox" {...inv('consent')} />
-            <span>I agree that my details{type === 'project' ? ' and images' : ''} are sent to kuzuii27&apos;s email so I can get a reply.</span></label>
+            <span>I agree that my details{type === 'project' ? ' and images' : ''} are sent to Kuzuii&apos;s email so I can get a reply.</span></label>
           {err('consent')}
           <p className="hint"><span>Privacy (RA 10173): your inquiry goes only to my email, is used only to reply to you, and is deleted when no longer needed. Nothing is stored on this website.</span></p></div>
       </div>

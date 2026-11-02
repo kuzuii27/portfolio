@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'kuzuii27 - Full-stack .NET developer',
+  title: 'Kuzuii - Full-stack .NET developer',
   description:
     'Full-stack .NET developer based in the Philippines. I build small, practical apps that solve real problems.',
 };

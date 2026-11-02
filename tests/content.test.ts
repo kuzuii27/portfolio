@@ -25,9 +25,11 @@ describe('site content', () => {
     expect(hits).toEqual([]);
   });
 
-  it('shows the kuzuii27 identity and GitHub link', () => {
+  it('shows the name Kuzuii, links GitHub kuzuii27, and never uses the handle as a display name', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
-    expect(page).toContain('kuzuii27');
+    expect(page).toContain('Kuzuii');
     expect(page).toContain('https://github.com/kuzuii27');
+    const withoutLinks = page.replaceAll('https://github.com/kuzuii27', '').replaceAll('github.com/kuzuii27', '');
+    expect(withoutLinks).not.toMatch(/kuzuii27/);
   });
 });

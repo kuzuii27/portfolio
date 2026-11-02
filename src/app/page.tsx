@@ -19,7 +19,7 @@ export default function Home() {
     <>
       <header className="nav">
         <div className="wrap">
-          <a className="brand" href="#top"><span className="mark" aria-hidden="true">K</span>kuzuii27</a>
+          <a className="brand" href="#top"><span className="mark" aria-hidden="true">K</span>Kuzuii</a>
           <nav id="nav-links" aria-label="Main">
             <a href="#work">Work</a><a href="#skills">Skills</a><a href="#about">About</a><a href="#contact">Contact</a>
           </nav>
@@ -35,7 +35,7 @@ export default function Home() {
             <div>
               <div className="who">
                 <span className="avatar" aria-hidden="true">K</span>
-                <div><strong>kuzuii27</strong><span>Based in the Philippines</span></div>
+                <div><strong>Kuzuii</strong><span>Based in the Philippines</span></div>
               </div>
               <h1 id="hero-title">Full-stack .NET developer. <span>I build small, practical apps that solve real problems.</span></h1>
               <p className="lede">Backend first with C#, ASP.NET and SQL Server, plus React, plain JavaScript or Flutter when the job needs a front end or a phone app.</p>
@@ -87,7 +87,7 @@ export default function Home() {
           <div className="wrap about">
             <h2 id="about-title">About me</h2>
             <div>
-              <p>I&apos;m kuzuii27, a full-stack developer based in the Philippines. I currently work at <strong>a GPS fleet-telematics company</strong>, and before that I worked on a payments platform at a fintech company.</p>
+              <p>I&apos;m Kuzuii, a full-stack developer based in the Philippines. I currently work at <strong>a GPS fleet-telematics company</strong>, and before that I worked on a payments platform at a fintech company.</p>
               <p>My strongest side is the backend: <strong>C#, ASP.NET MVC and Core, SQL Server and the CQRS pattern</strong>. I also build frontends in React or plain HTML, CSS and JavaScript, and Android apps in Flutter.</p>
               <p>I like small, practical apps that solve a real problem. I start with the smallest solution that works and check it before it ships. I use AI coding assistants every day and review what they write myself.</p>
             </div>
@@ -114,7 +114,7 @@ export default function Home() {
           <ul className="contacts" aria-label="Links">
             <li><a href={GITHUB} rel="me noopener">github.com/kuzuii27</a></li>
           </ul>
-          <div className="foot-r"><span>kuzuii27</span></div>
+          <div className="foot-r"><span>Kuzuii</span></div>
         </div>
       </footer>
     </>
