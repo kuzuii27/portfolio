@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dentists | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Meet the (fictional) dentists of Ngiti Dental Clinic.">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('ngiti-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/high/style.css">
+</head>
+<body data-level="high">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>7 pages, including online booking and a result page</li>
+    <li>Booking flow: service, date, time, details, then a ₱500 deposit through Maya (sandbox, test money)</li>
+    <li>FAQ chatbot that answers common questions and hands anything else to staff</li>
+    <li>Star-rated reviews and a before/after slider</li>
+    <li>Custom design, smooth scroll animations, dark and light mode</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Fast loading scores and security headers</li>
+    <li>Admin panel (CMS) so the clinic can edit prices and pages</li>
+    <li>Integrations: booking calendar, Maya payments, Viber or email alerts for staff</li>
+    <li>On a real site, Maya confirms each payment to the server (webhook) before the booking is saved. This demo skips that step and saves nothing.</li>
+  </ul>
+</template>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></a>
+    <nav id="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="services.html">Services</a><a href="dentists.html" aria-current="page">Dentists</a><a href="reviews.html">Reviews</a><a href="contact.html">Contact</a></nav>
+    <button class="icon-btn theme" type="button" aria-label="Switch dark or light mode"><span aria-hidden="true">◐</span></button>
+    <button class="icon-btn menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span aria-hidden="true">☰</span></button>
+    <a class="pill-btn" href="book.html">Book now</a>
+  </div>
+</header>
+<main>
+<section class="page-hero"><div class="wrap"><p class="kicker">Our team</p><h1>Meet your dentists</h1><p class="lead">Fictional dentists for this sample site.</p></div></section>
+<section class="sec wrap team">
+  <article class="doc reveal"><img src="/demos/img/dentist-portrait.webp" alt="Dr. Paolo Dizon at work" width="900" height="1350" loading="lazy"><div><h2>Dr. Paolo Dizon</h2><p class="kicker">General dentistry</p><p class="muted">Check-ups, fillings and gentle extractions. Great with nervous first-timers.</p></div></article>
+  <article class="doc reveal"><img src="/demos/img/dentist-patient.webp" alt="Dr. Lea Navarro with a patient" width="900" height="600" loading="lazy"><div><h2>Dr. Lea Navarro</h2><p class="kicker">Orthodontics &amp; whitening</p><p class="muted">Braces, aligners and whitening, with progress updates by Viber.</p></div></article>
+</section>
+<section class="sec wrap"><div class="gal reveal"><img src="/demos/img/clinic-interior.webp" alt="Treatment room" width="1600" height="1067" loading="lazy"><img src="/demos/img/checkup.webp" alt="Patient during a check-up" width="900" height="600" loading="lazy"><img src="/demos/img/cleaning.webp" alt="Teeth cleaning" width="900" height="600" loading="lazy"></div></section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></div>
+    <p>Unit 0, Sample Street, Pasig City (fictional) · 0900 000 0000<br>Mon - Sat, 9:00 AM - 6:00 PM · Closed Sundays</p>
+    <p><a href="index.html">Home</a> · <a href="services.html">Services</a> · <a href="dentists.html">Dentists</a> · <a href="reviews.html">Reviews</a> · <a href="contact.html">Contact</a> · <a href="book.html">Book</a></p>
+  </div>
+</footer>
+<script src="/demos/high/site.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>

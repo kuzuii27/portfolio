@@ -99,4 +99,10 @@ describe('site content', () => {
       for (const other of pages.filter((o) => o !== p)) expect(html, `${p} -> ${other}`).toContain(`href="${other}.html"`);
     }
   });
+  it('high demo has booking and result pages with every booking step', () => {
+    for (const p of ['index', 'services', 'dentists', 'reviews', 'contact', 'book', 'booking-result'])
+      expect(statSync(`public/demos/high/${p}.html`).isFile()).toBe(true);
+    const book = readFileSync('public/demos/high/book.html', 'utf8');
+    for (const id of ['step-service', 'step-date', 'step-time', 'step-details', 'step-deposit']) expect(book).toContain(`id="${id}"`);
+  });
 });

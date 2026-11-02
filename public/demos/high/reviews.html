@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reviews | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Sample patient reviews for Ngiti Dental Clinic.">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('ngiti-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/high/style.css">
+</head>
+<body data-level="high">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>7 pages, including online booking and a result page</li>
+    <li>Booking flow: service, date, time, details, then a ₱500 deposit through Maya (sandbox, test money)</li>
+    <li>FAQ chatbot that answers common questions and hands anything else to staff</li>
+    <li>Star-rated reviews and a before/after slider</li>
+    <li>Custom design, smooth scroll animations, dark and light mode</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Fast loading scores and security headers</li>
+    <li>Admin panel (CMS) so the clinic can edit prices and pages</li>
+    <li>Integrations: booking calendar, Maya payments, Viber or email alerts for staff</li>
+    <li>On a real site, Maya confirms each payment to the server (webhook) before the booking is saved. This demo skips that step and saves nothing.</li>
+  </ul>
+</template>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></a>
+    <nav id="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="services.html">Services</a><a href="dentists.html">Dentists</a><a href="reviews.html" aria-current="page">Reviews</a><a href="contact.html">Contact</a></nav>
+    <button class="icon-btn theme" type="button" aria-label="Switch dark or light mode"><span aria-hidden="true">◐</span></button>
+    <button class="icon-btn menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span aria-hidden="true">☰</span></button>
+    <a class="pill-btn" href="book.html">Book now</a>
+  </div>
+</header>
+<main>
+<section class="page-hero"><div class="wrap"><p class="kicker">Reviews</p><h1>Patients love the calm.</h1><p class="lead"><span class="stars" role="img" aria-label="5 out of 5 stars">★★★★★</span> 4.9 average from sample reviews</p></div></section>
+<section class="sec wrap"><div class="rev-grid"><figure class="rev reveal"><span class="stars" role="img" aria-label="5 out of 5 stars">★★★★★</span><blockquote>“My kids actually look forward to their check-ups now. The booking reminder on Viber is so convenient.”</blockquote><figcaption>Maria L. <span>sample review</span></figcaption></figure><figure class="rev reveal"><span class="stars" role="img" aria-label="5 out of 5 stars">★★★★★</span><blockquote>“Booked at 11 PM online, paid the deposit with Maya, and was seen right on time the next day.”</blockquote><figcaption>Joel R. <span>sample review</span></figcaption></figure><figure class="rev reveal"><span class="stars" role="img" aria-label="4 out of 5 stars">★★★★☆</span><blockquote>“Clear prices, gentle dentist. Parking can be tight on Saturdays.”</blockquote><figcaption>Grace T. <span>sample review</span></figcaption></figure><figure class="rev reveal"><span class="stars" role="img" aria-label="5 out of 5 stars">★★★★★</span><blockquote>“The assistant on the website answered my HMO question instantly.”</blockquote><figcaption>Ramon C. <span>sample review</span></figcaption></figure></div></section>
+<section class="sec wrap split">
+  <div class="reveal"><h2>Whitening, before and after</h2><p class="muted">Simulated comparison for the demo. Use the slider or your arrow keys.</p></div>
+  <div class="ba reveal" style="--pos:50%">
+    <img src="/demos/img/smile.webp" alt="" width="1200" height="676" class="ba-before">
+    <img src="/demos/img/smile.webp" alt="Smile after whitening (simulated)" width="1200" height="676" class="ba-after">
+    <span class="ba-tag l">Before</span><span class="ba-tag r">After</span>
+    <input type="range" min="0" max="100" value="50" aria-label="Compare before and after">
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></div>
+    <p>Unit 0, Sample Street, Pasig City (fictional) · 0900 000 0000<br>Mon - Sat, 9:00 AM - 6:00 PM · Closed Sundays</p>
+    <p><a href="index.html">Home</a> · <a href="services.html">Services</a> · <a href="dentists.html">Dentists</a> · <a href="reviews.html">Reviews</a> · <a href="contact.html">Contact</a> · <a href="book.html">Book</a></p>
+  </div>
+</footer>
+<script src="/demos/high/site.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>

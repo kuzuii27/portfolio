@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Ngiti Dental Clinic, Pasig: book online, pay a deposit with Maya, ask our assistant. Sample premium site.">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('ngiti-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/high/style.css">
+</head>
+<body data-level="high">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>7 pages, including online booking and a result page</li>
+    <li>Booking flow: service, date, time, details, then a ₱500 deposit through Maya (sandbox, test money)</li>
+    <li>FAQ chatbot that answers common questions and hands anything else to staff</li>
+    <li>Star-rated reviews and a before/after slider</li>
+    <li>Custom design, smooth scroll animations, dark and light mode</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Fast loading scores and security headers</li>
+    <li>Admin panel (CMS) so the clinic can edit prices and pages</li>
+    <li>Integrations: booking calendar, Maya payments, Viber or email alerts for staff</li>
+    <li>On a real site, Maya confirms each payment to the server (webhook) before the booking is saved. This demo skips that step and saves nothing.</li>
+  </ul>
+</template>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></a>
+    <nav id="site-nav" aria-label="Main"><a href="index.html" aria-current="page">Home</a><a href="services.html">Services</a><a href="dentists.html">Dentists</a><a href="reviews.html">Reviews</a><a href="contact.html">Contact</a></nav>
+    <button class="icon-btn theme" type="button" aria-label="Switch dark or light mode"><span aria-hidden="true">◐</span></button>
+    <button class="icon-btn menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span aria-hidden="true">☰</span></button>
+    <a class="pill-btn" href="book.html">Book now</a>
+  </div>
+</header>
+<main>
+<section class="hero">
+  <div class="blob" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <p class="kicker">Pasig · Family &amp; cosmetic dentistry</p>
+      <h1>Your calmest dental visit <span>starts online.</span></h1>
+      <p class="lead">Book in under a minute, secure your slot with a small deposit, and ask our assistant anything, day or night.</p>
+      <div class="ctas"><a class="pill-btn big" href="book.html">Book an appointment</a><a class="ghost-btn" href="services.html">See services</a></div>
+      <ul class="trust"><li><b>4.9</b> average rating</li><li><b>HMO</b> Maxicare · Intellicare · Medicard</li><li><b>Mon-Sat</b> 9 AM - 6 PM</li></ul>
+    </div>
+    <div class="hero-media reveal"><img src="/demos/img/dentist-at-work.webp" alt="Dentist treating a patient in a modern clinic" width="1600" height="1067"><div class="float-card"><b>Next free slot</b><span>Tomorrow, 10:00 AM</span></div></div>
+  </div>
+</section>
+<section class="sec wrap">
+  <div class="sec-head reveal"><p class="kicker">What we do</p><h2>Care for every smile</h2></div>
+  <ul class="svc-grid"><li class="svc reveal"><span class="svc-n">01</span><h3>Consultation</h3><p>Full check-up and a clear plan, explained in plain words.</p><p class="svc-meta"><b>₱500</b> · 30 min</p></li><li class="svc reveal"><span class="svc-n">02</span><h3>Cleaning</h3><p>Ultrasonic scaling and polish. Every 6 months.</p><p class="svc-meta"><b>₱1,000 - ₱1,500</b> · 45 min</p></li><li class="svc reveal"><span class="svc-n">03</span><h3>Filling</h3><p>Tooth-coloured composite that matches your smile.</p><p class="svc-meta"><b>from ₱1,000</b> · 45 min</p></li><li class="svc reveal"><span class="svc-n">04</span><h3>Extraction</h3><p>Gentle, numbed, with aftercare instructions by Viber.</p><p class="svc-meta"><b>from ₱1,000</b> · 45 min</p></li><li class="svc reveal"><span class="svc-n">05</span><h3>Whitening</h3><p>In-clinic whitening, several shades in one visit.</p><p class="svc-meta"><b>from ₱8,000</b> · 90 min</p></li><li class="svc reveal"><span class="svc-n">06</span><h3>Braces</h3><p>Metal or ceramic, with monthly adjustments.</p><p class="svc-meta"><b>from ₱40,000</b> · 60 min</p></li></ul>
+</section>
+<section class="sec wrap split">
+  <div class="reveal"><p class="kicker">Real results</p><h2>See the difference</h2><p class="muted">Drag the slider to compare. This is a simulated before/after for the demo.</p><a class="ghost-btn" href="reviews.html">Read reviews</a></div>
+  <div class="ba reveal" style="--pos:50%">
+    <img src="/demos/img/smile.webp" alt="" width="1200" height="676" class="ba-before">
+    <img src="/demos/img/smile.webp" alt="Smile after whitening (simulated)" width="1200" height="676" class="ba-after">
+    <span class="ba-tag l">Before</span><span class="ba-tag r">After</span>
+    <input type="range" min="0" max="100" value="50" aria-label="Compare before and after">
+  </div>
+</section>
+<section class="cta-band"><div class="wrap cta-in reveal"><h2>Ready when you are.</h2><a class="pill-btn big light" href="book.html">Book an appointment</a></div></section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></div>
+    <p>Unit 0, Sample Street, Pasig City (fictional) · 0900 000 0000<br>Mon - Sat, 9:00 AM - 6:00 PM · Closed Sundays</p>
+    <p><a href="index.html">Home</a> · <a href="services.html">Services</a> · <a href="dentists.html">Dentists</a> · <a href="reviews.html">Reviews</a> · <a href="contact.html">Contact</a> · <a href="book.html">Book</a></p>
+  </div>
+</footer>
+<script src="/demos/high/site.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>

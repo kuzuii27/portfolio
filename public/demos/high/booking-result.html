@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking result | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Booking result for Ngiti Dental Clinic.">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('ngiti-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/high/style.css">
+</head>
+<body data-level="high">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>7 pages, including online booking and a result page</li>
+    <li>Booking flow: service, date, time, details, then a ₱500 deposit through Maya (sandbox, test money)</li>
+    <li>FAQ chatbot that answers common questions and hands anything else to staff</li>
+    <li>Star-rated reviews and a before/after slider</li>
+    <li>Custom design, smooth scroll animations, dark and light mode</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Fast loading scores and security headers</li>
+    <li>Admin panel (CMS) so the clinic can edit prices and pages</li>
+    <li>Integrations: booking calendar, Maya payments, Viber or email alerts for staff</li>
+    <li>On a real site, Maya confirms each payment to the server (webhook) before the booking is saved. This demo skips that step and saves nothing.</li>
+  </ul>
+</template>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></a>
+    <nav id="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="services.html">Services</a><a href="dentists.html">Dentists</a><a href="reviews.html">Reviews</a><a href="contact.html">Contact</a></nav>
+    <button class="icon-btn theme" type="button" aria-label="Switch dark or light mode"><span aria-hidden="true">◐</span></button>
+    <button class="icon-btn menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span aria-hidden="true">☰</span></button>
+    <a class="pill-btn" href="book.html">Book now</a>
+  </div>
+</header>
+<main>
+<section class="page-hero slim"><div class="wrap"><p class="kicker">Online booking</p><h1 id="r-title" tabindex="-1">Checking your payment…</h1><p class="lead" id="r-text"></p><div class="summary" id="r-summary" hidden></div><p class="ctas"><a class="pill-btn" id="r-cta" href="book.html">Back to booking</a> <a class="ghost-btn" href="index.html">Home</a></p></div></section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></div>
+    <p>Unit 0, Sample Street, Pasig City (fictional) · 0900 000 0000<br>Mon - Sat, 9:00 AM - 6:00 PM · Closed Sundays</p>
+    <p><a href="index.html">Home</a> · <a href="services.html">Services</a> · <a href="dentists.html">Dentists</a> · <a href="reviews.html">Reviews</a> · <a href="contact.html">Contact</a> · <a href="book.html">Book</a></p>
+  </div>
+</footer>
+<script src="/demos/high/site.js" defer></script>
+<script src="/demos/high/booking-result.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>

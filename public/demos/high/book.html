@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book | Ngiti Dental Clinic (sample site)</title>
+<meta name="description" content="Book a dental appointment online at Ngiti Dental Clinic.">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('ngiti-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="/demos/demo-bar.css">
+<link rel="stylesheet" href="/demos/high/style.css">
+</head>
+<body data-level="high">
+<template id="level-checklist">
+  <h3>On this site</h3>
+  <ul>
+    <li>7 pages, including online booking and a result page</li>
+    <li>Booking flow: service, date, time, details, then a ₱500 deposit through Maya (sandbox, test money)</li>
+    <li>FAQ chatbot that answers common questions and hands anything else to staff</li>
+    <li>Star-rated reviews and a before/after slider</li>
+    <li>Custom design, smooth scroll animations, dark and light mode</li>
+  </ul>
+  <h3>Behind the scenes</h3>
+  <ul>
+    <li>Fast loading scores and security headers</li>
+    <li>Admin panel (CMS) so the clinic can edit prices and pages</li>
+    <li>Integrations: booking calendar, Maya payments, Viber or email alerts for staff</li>
+    <li>On a real site, Maya confirms each payment to the server (webhook) before the booking is saved. This demo skips that step and saves nothing.</li>
+  </ul>
+</template>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></a>
+    <nav id="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="services.html">Services</a><a href="dentists.html">Dentists</a><a href="reviews.html">Reviews</a><a href="contact.html">Contact</a></nav>
+    <button class="icon-btn theme" type="button" aria-label="Switch dark or light mode"><span aria-hidden="true">◐</span></button>
+    <button class="icon-btn menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span aria-hidden="true">☰</span></button>
+    <a class="pill-btn" href="book.html">Book now</a>
+  </div>
+</header>
+<main>
+<section class="page-hero slim"><div class="wrap"><p class="kicker">Online booking</p><h1>Book your visit</h1></div></section>
+<section class="sec wrap booking">
+  <ol class="progress" aria-label="Booking steps"><li data-for="step-service">Service</li><li data-for="step-date">Date</li><li data-for="step-time">Time</li><li data-for="step-details">Details</li><li data-for="step-deposit">Deposit</li></ol>
+  <form id="booking" novalidate>
+    <fieldset class="step" id="step-service"><legend>1. Choose a service</legend><div class="opts"><label class="opt"><input type="radio" name="service" value="Consultation"><span><b>Consultation</b><small>₱500 · 30 min</small></span></label><label class="opt"><input type="radio" name="service" value="Cleaning"><span><b>Cleaning</b><small>₱1,000 - ₱1,500 · 45 min</small></span></label><label class="opt"><input type="radio" name="service" value="Filling"><span><b>Filling</b><small>from ₱1,000 · 45 min</small></span></label><label class="opt"><input type="radio" name="service" value="Extraction"><span><b>Extraction</b><small>from ₱1,000 · 45 min</small></span></label><label class="opt"><input type="radio" name="service" value="Whitening"><span><b>Whitening</b><small>from ₱8,000 · 90 min</small></span></label><label class="opt"><input type="radio" name="service" value="Braces"><span><b>Braces</b><small>from ₱40,000 · 60 min</small></span></label></div><p class="ferr" data-err="service"></p><div class="step-nav"><button class="pill-btn" type="button" data-next>Next</button></div></fieldset>
+    <fieldset class="step" id="step-date" hidden><legend>2. Choose a date</legend><p class="muted">Next 14 days. Closed on Sundays.</p><div class="opts dates" id="dates"></div><p class="ferr" data-err="date"></p><div class="step-nav"><button class="ghost-btn" type="button" data-back>Back</button><button class="pill-btn" type="button" data-next>Next</button></div></fieldset>
+    <fieldset class="step" id="step-time" hidden><legend>3. Choose a time</legend><div class="opts times" id="times"></div><p class="ferr" data-err="time"></p><div class="step-nav"><button class="ghost-btn" type="button" data-back>Back</button><button class="pill-btn" type="button" data-next>Next</button></div></fieldset>
+    <fieldset class="step" id="step-details" hidden><legend>4. Your details</legend>
+      <div class="f"><label for="b-name">First name</label><input id="b-name" name="firstName" autocomplete="given-name" maxlength="50"><p class="ferr" data-err="firstName"></p></div>
+      <div class="f"><label for="b-viber">Viber number</label><input id="b-viber" name="viber" type="tel" inputmode="tel" placeholder="09XX XXX XXXX" autocomplete="tel"><p class="ferr" data-err="viber"></p></div>
+      <div class="step-nav"><button class="ghost-btn" type="button" data-back>Back</button><button class="pill-btn" type="button" data-next>Next</button></div></fieldset>
+    <fieldset class="step" id="step-deposit" hidden><legend>5. Secure your slot</legend>
+      <div class="summary" id="summary"></div>
+      <div class="sandbox" role="note"><b>Sandbox: no real money.</b> You will go to Maya's test checkout. Use the test card <code>5123 4567 8901 2346</code>, expiry <code>12/2030</code>, CVV <code>111</code>. Never enter a real card.</div>
+      <p class="ferr" data-err="deposit" role="alert"></p>
+      <div class="step-nav"><button class="ghost-btn" type="button" data-back>Back</button><button class="pill-btn" type="submit" id="pay">Pay ₱500 deposit with Maya</button></div></fieldset>
+  </form>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">n</span><span>ngiti<em>dental</em></span></div>
+    <p>Unit 0, Sample Street, Pasig City (fictional) · 0900 000 0000<br>Mon - Sat, 9:00 AM - 6:00 PM · Closed Sundays</p>
+    <p><a href="index.html">Home</a> · <a href="services.html">Services</a> · <a href="dentists.html">Dentists</a> · <a href="reviews.html">Reviews</a> · <a href="contact.html">Contact</a> · <a href="book.html">Book</a></p>
+  </div>
+</footer>
+<script src="/demos/high/site.js" defer></script>
+<script src="/demos/high/booking.js" defer></script>
+<script src="/demos/demo-bar.js" defer></script>
+</body>
+</html>
