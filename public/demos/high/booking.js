@@ -98,11 +98,21 @@
     return 'NGITI-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + tail;
   };
 
-  // Pretend deposit: goes straight to the result page. Task 7 swaps in the Maya sandbox checkout.
+  // Deposit through Maya's sandbox checkout. Without a key (503) it falls back to a pretend deposit so the demo never breaks.
   async function startDeposit({ service, firstName }) {
-    const ref = makeRef();
+    const res = await fetch('/api/demo/maya-checkout', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ service, firstName }),
+    });
+    if (res.status === 503) {
+      const ref = makeRef();
+      state.ref = ref; save();
+      location.assign('booking-result.html?status=success&demo=1&ref=' + encodeURIComponent(ref));
+      return;
+    }
+    if (!res.ok) throw new Error('checkout ' + res.status);
+    const { redirectUrl, ref } = await res.json();
     state.ref = ref; save();
-    location.assign('booking-result.html?status=success&demo=1&ref=' + encodeURIComponent(ref));
+    location.assign(redirectUrl);
   }
 
   form.addEventListener('submit', async (e) => {
