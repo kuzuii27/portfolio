@@ -161,13 +161,13 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       const s = Math.sin(t * 11);
       if (p === 'flip' && lastPose !== 'flip') flipAt = t;
       lastPose = p;
-      const flipQ = p === 'flip' ? Math.min(1, (t - flipAt) / 0.7) : 1;
+      const flipQ = Math.min(1, (t - flipAt) / 0.7); // a started flip always finishes, even if the pose changes (slow phones)
       const flipping = flipQ < 1;
       const sit = p === 'sit' && !walk && !air && !climb;
       const wipe = p === 'wipe' && !walk && !air && !climb;
 
       // facing: toward the walk direction, back to us while climbing or wiping, side-on for the flip so it reads
-      ease(robot, flipping ? 1 : k, 0, climb || wipe ? Math.PI : flipping ? -dir * Math.PI / 2 : walk ? dir * 0.9 : dir * 0.3, 0);
+      ease(robot, flipping ? 1 : k, 0, climb || wipe ? Math.PI : flipping ? -dir * Math.PI / 2 : sit ? dir * 0.8 : walk ? dir * 0.9 : dir * 0.3, 0);
       body.position.set(0, walk ? Math.abs(s) * 0.05 : climb ? Math.abs(Math.sin(t * 8)) * 0.06 : sit ? -0.55 : Math.sin(t * 1.6) * 0.02, 0);
       body.rotation.x = 0;
       body.scale.setScalar(1);

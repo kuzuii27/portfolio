@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { CASES, type CaseStudy } from '@/lib/cases';
+import { CaseRobot } from '@/components/CaseRobot';
 
 const Arrow = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
@@ -22,10 +23,14 @@ export function CaseStudies() {
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const [active, setActive] = useState<CaseStudy | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [openings, setOpenings] = useState(0); // new robot per opening, so its routine replays
 
   const open = (c: CaseStudy, e: React.MouseEvent<HTMLButtonElement>) => {
     opener.current = e.currentTarget;
     setActive(c);
+    setIsOpen(true);
+    setOpenings((n) => n + 1);
     dialog.current?.showModal();
     if (dialog.current) dialog.current.scrollTop = 0; // focusing the close button scrolls the dialog; start at the top
   };
@@ -49,7 +54,7 @@ export function CaseStudies() {
         ))}
       </div>
 
-      <dialog id="case" ref={dialog} aria-labelledby="case-title" onClose={() => opener.current?.focus()}
+      <dialog id="case" ref={dialog} aria-labelledby="case-title" onClose={() => { setIsOpen(false); opener.current?.focus(); }}
         onClick={(e) => { if (e.target === dialog.current) dialog.current.close(); }}>
         <button className="btn btn-ghost icon-btn dlg-close" type="button" aria-label="Close case study" onClick={() => dialog.current?.close()}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
@@ -58,7 +63,10 @@ export function CaseStudies() {
           <>
             <div className="viz" dangerouslySetInnerHTML={{ __html: active.svg }} />
             <div className="case-doc">
-              <div><Meta c={active} /><h2 id="case-title">{active.title}</h2></div>
+              <div className="case-head">
+                <div><Meta c={active} /><h2 id="case-title">{active.title}</h2></div>
+                {isOpen && <CaseRobot key={openings} line={active.brag} />}
+              </div>
               <div><h3>Problem</h3><p>{active.problem}</p></div>
               <div><h3>What I built</h3><ul className="list">{active.built.map((x) => <li key={x}>{x}</li>)}</ul></div>
               <div><h3>Stack</h3><Chips items={active.stack} /></div>
