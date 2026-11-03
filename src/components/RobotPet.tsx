@@ -25,7 +25,7 @@ export function RobotPet() {
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    if (sessionStorage.getItem('robot-hidden') === '1') { el.style.display = 'none'; return; }
+    if (sessionStorage.getItem('robot-pet-hidden') === '1') { el.style.display = 'none'; return; }
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let els = [...document.querySelectorAll(PLATFORMS)];
     const onResize = () => { els = [...document.querySelectorAll(PLATFORMS)]; };
@@ -151,7 +151,7 @@ export function RobotPet() {
       <div className="pet-body" onClick={() => hop.current()} onPointerEnter={() => setPose((p) => (p === 'stand' ? 'wave' : p))}>
         <Robot pose={pose} walking={walking} talking={say !== ''} />
       </div>
-      <button type="button" className="pet-hide" onClick={() => { sessionStorage.setItem('robot-hidden', '1'); setHidden(true); }}>
+      <button type="button" className="pet-hide" onClick={() => { sessionStorage.setItem('robot-pet-hidden', '1'); setHidden(true); }}>
         Hide robot
       </button>
     </div>
