@@ -149,19 +149,16 @@ describe('site content', () => {
   it('has a case study on the inquiry-to-website process', () => {
     expect(readFileSync('src/lib/cases.ts', 'utf8')).toContain('From Inquiry to Finished Website');
   });
-  it('hero has the friendly robot, decorative and motion-safe', () => {
-    expect(readFileSync('src/app/page.tsx', 'utf8')).toContain('<HeroRobot />');
+  it('robot pet roams the page boxes, can be hidden, and is motion-safe', () => {
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    expect(page).toContain('<RobotPet />');
+    expect(page).not.toContain('HeroRobot');
+    const pet = readFileSync('src/components/RobotPet.tsx', 'utf8');
+    expect(pet).toContain('requestAnimationFrame');
+    expect(pet).toContain('Hide robot');
+    expect(pet).toContain('prefers-reduced-motion');
     const robot = readFileSync('src/components/Robot.tsx', 'utf8');
-    expect(robot).toContain('aria-hidden="true"');
-    expect(robot).toContain('prefers-reduced-motion');
-    expect(readFileSync('src/app/globals.css', 'utf8')).toMatch(/prefers-reduced-motion:reduce\)\{[^}]*\.robot/);
-  });
-  it('robot guide follows the page, can be hidden, and is motion-safe', () => {
-    expect(readFileSync('src/app/page.tsx', 'utf8')).toContain('<RobotGuide />');
-    const guide = readFileSync('src/components/RobotGuide.tsx', 'utf8');
-    expect(guide).toContain('IntersectionObserver');
-    expect(guide).toContain('Hide robot');
-    expect(guide).toContain('prefers-reduced-motion');
-    expect(readFileSync('src/components/Robot.tsx', 'utf8')).toContain('data-pose');
+    expect(robot).toContain('data-pose');
+    expect(robot).not.toContain('laptop');
   });
 });

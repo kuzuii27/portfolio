@@ -1,12 +1,12 @@
 // What the robot guide says and does in each section. 'top' is the hero.
 
-export type Pose = 'type' | 'wave' | 'point' | 'present' | 'think' | 'thumbs';
+export type Pose = 'stand' | 'nap' | 'type' | 'wave' | 'point' | 'present' | 'think' | 'thumbs';
 
 export const SECTION_IDS = ['top', 'work', 'levels', 'skills', 'about', 'contact'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 export const GUIDE: Record<SectionId, { pose: Pose; intro: string; again: string }> = {
-  top: { pose: 'type', intro: 'Hi! I\u2019m Kuzuii\u2019s helper bot. Scroll down and I\u2019ll show you around.', again: 'Welcome back to the top!' },
+  top: { pose: 'wave', intro: 'Hi! I\u2019m Kuzuii\u2019s helper bot. Scroll down and I\u2019ll show you around.', again: 'Welcome back to the top!' },
   work: { pose: 'point', intro: 'These are real projects. Tap one to read the full story.', again: 'Back to the projects!' },
   levels: { pose: 'present', intro: 'Not sure what you need? Compare three website levels side by side.', again: 'Three levels, one for every budget.' },
   skills: { pose: 'think', intro: 'Strong on the backend, and always learning the rest.', again: 'Still learning, every project.' },

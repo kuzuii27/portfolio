@@ -366,18 +366,14 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 .robot-svg{display:block;width:100%;height:auto;overflow:visible}
 .robot-shadow{fill:rgba(0,0,0,.12)}
 [data-theme=dark] .robot-shadow{fill:rgba(0,0,0,.5)}
-.robot-logo{font:700 26px/1 var(--sans);fill:#38bdf8;filter:drop-shadow(0 0 4px rgba(56,189,248,.8))}
 .robot-head{transform-box:fill-box;transform-origin:50% 90%;transform:translate(calc(var(--hx) * 7px),calc(var(--hy) * 4px)) rotate(calc(var(--hx) * 7deg));transition:transform .35s cubic-bezier(.2,.7,.2,1)}
 .robot-eyes{transform:translate(calc(var(--hx) * 5px),calc(var(--hy) * 3px));transition:transform .25s}
 .robot-eye{transform-box:fill-box;transform-origin:center;animation:robot-blink 5.5s infinite}
 .robot-body,.robot-head{animation:robot-bob 4s ease-in-out infinite}
 .robot-head{animation:none}
-.robot-hand{animation:robot-type .32s ease-in-out infinite alternate}
-.robot-hand-r{animation-delay:.16s}
 .robot-core,.robot-antenna{animation:robot-pulse 2.4s ease-in-out infinite}
 @keyframes robot-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 @keyframes robot-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@keyframes robot-type{to{transform:translateY(-4px)}}
 @keyframes robot-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.robot *,.robot{animation:none!important;transition:none!important}}
 @media (max-width:1024px){.robot{width:min(260px,70%)}}
@@ -402,23 +398,27 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 /* speech bubble */
 .robot-say{min-height:1.4em;margin:0 0 4px;padding:8px 12px;border:1px solid var(--line);border-radius:14px 14px 14px 4px;background:var(--bg-2);color:var(--fg);font-size:14px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.08)}
 .robot-say:empty{visibility:hidden}
-.hero-robot{display:grid;justify-items:center;gap:4px}
-.hero-robot .robot-say{max-width:320px}
 
 /* docked companion after the hero */
-.guide{position:fixed;right:16px;bottom:12px;z-index:40;width:130px;display:grid;justify-items:end;transform:translateY(130%);opacity:0;transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .3s;pointer-events:none}
-.guide.on{transform:none;opacity:1}
-.guide.on .guide-hide{pointer-events:auto}
-.guide .robot{width:100%}
-.guide .robot-say{position:absolute;right:100%;bottom:60%;width:max-content;max-width:240px;margin-right:4px;border-radius:14px 14px 4px 14px}
-.guide.walking .robot{animation:guide-walk .9s ease-out}
-@keyframes guide-walk{from{transform:translateX(60px)}to{transform:none}}
-.guide.tucked{transform:translateX(45%)}
-.guide-hide{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg-2);cursor:pointer}
-.guide-hide:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
-@media (max-width:768px){
-  .guide{right:auto;left:8px;width:84px;justify-items:start}
-  .guide .robot-say{right:auto;left:100%;bottom:55%;max-width:min(220px,60vw);margin:0 0 0 4px;border-radius:14px 14px 14px 4px;font-size:13px}
-  .guide.tucked,.guide.on.quiet{transform:translateX(-55%)} /* phone: peek from the edge when not talking, so it doesn't sit on content */
-}
-@media (prefers-reduced-motion:reduce){.guide,.guide *{transition:none!important;animation:none!important}}
+
+/* robot pet: lives on the page, stands on box tops */
+.pet{position:absolute;left:0;top:0;z-index:30;width:96px;pointer-events:none;will-change:transform}
+.pet-body{pointer-events:auto;cursor:pointer}
+.pet[data-dir="-1"] .robot{transform:scaleX(-1)}
+.pet .robot{width:100%;transition:transform .15s}
+.pet.landed .pet-body{animation:pet-squash .26s ease-out}
+@keyframes pet-squash{0%{transform:scale(1.15,.8)}60%{transform:scale(.95,1.05)}100%{transform:none}}
+.pet.air .robot-leg-l{rotate:-10deg}.pet.air .robot-leg-r{rotate:10deg}
+.pet .robot-say{position:absolute;bottom:100%;left:0;width:max-content;max-width:min(240px,70vw);font-size:13px;pointer-events:none}
+.pet[data-side=r] .robot-say{left:auto;right:0;border-radius:14px 14px 4px 14px}
+.pet-z{position:absolute;top:-6px;right:-8px;font:700 13px/1 var(--sans);color:var(--fg-2);animation:pet-z 1.6s ease-in-out infinite}
+@keyframes pet-z{0%{opacity:0;translate:0 6px}50%{opacity:1}100%{opacity:0;translate:6px -10px}}
+.pet-heart{position:absolute;top:-4px;left:40%;color:#f472b6;font-size:18px;animation:pet-heart .9s ease-out forwards}
+@keyframes pet-heart{to{opacity:0;translate:0 -36px;scale:1.4}}
+[data-pose=nap] .robot-eye{animation:none;transform:scaleY(.15)}
+[data-pose=nap] .robot-head{rotate:8deg}
+.pet-hide{position:absolute;top:100%;left:50%;translate:-50% 2px;font-size:11px;white-space:nowrap;padding:1px 7px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg-2);cursor:pointer;opacity:0;pointer-events:auto;transition:opacity .2s}
+.pet:hover .pet-hide,.pet-hide:focus-visible{opacity:1}
+.pet-hide:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+@media (max-width:768px){.pet{width:64px}}
+@media (prefers-reduced-motion:reduce){.pet,.pet *{animation:none!important;transition:none!important}}
