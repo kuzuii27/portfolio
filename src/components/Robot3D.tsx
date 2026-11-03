@@ -230,6 +230,7 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       ro.disconnect();
       removeEventListener('pointermove', onPointer);
       scene.traverse((o) => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose(); } });
+      renderer.forceContextLoss(); // dispose() alone keeps the WebGL context alive; browsers cap live contexts (~16)
       renderer.dispose();
       renderer.domElement.remove();
     };
