@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GRAVITY, jumpSpeed, pickPlatform } from '@/lib/robotPet';
+import { CLIMB_SPEED, climbStep, pickPlatform } from '@/lib/robotPet';
 
 const plats = [
   { top: 100, left: 0, right: 400 },
@@ -18,11 +18,8 @@ describe('robot pet physics', () => {
     expect(pickPlatform(plats, 2000, 2600, 100)).toBe(-1);
   });
 
-  it('jumps high enough to reach a platform above', () => {
-    for (const rise of [0, 120, 600]) {
-      const v = jumpSpeed(rise);
-      expect(v).toBeLessThan(0);
-      expect((v * v) / (2 * GRAVITY)).toBeGreaterThan(rise);
-    }
+  it('climbs up at a steady speed and stops on the box top', () => {
+    expect(climbStep(1000, 400, 0.5)).toBe(1000 - CLIMB_SPEED * 0.5);
+    expect(climbStep(420, 400, 0.5)).toBe(400);
   });
 });

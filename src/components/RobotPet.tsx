@@ -1,16 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Robot } from '@/components/Robot';
 import { lineFor, type Pose } from '@/lib/robotScript';
-import { jumpSpeed, pickPlatform, GRAVITY, type Plat } from '@/lib/robotPet';
+import { climbStep, pickPlatform, GRAVITY, type Plat } from '@/lib/robotPet';
+
+// three.js loads after the page; the SVG robot shows meanwhile.
+const Robot3D = dynamic(() => import('@/components/Robot3D').then((m) => m.Robot3D), { ssr: false, loading: () => <Robot /> });
 
 // The boxes the robot can stand on.
 const PLATFORMS = '.facts, .case, .levels > li, .skill-row, .contacts, #contact form';
 const IDLE: Pose[] = ['wave', 'think', 'thumbs', 'present', 'nap'];
 const FEET = 286 / 300; // where the feet are in the robot's SVG
 
-type State = 'air' | 'land' | 'walk' | 'idle';
+type State = 'air' | 'climb' | 'land' | 'walk' | 'idle';
 
 /** A playful robot that walks on top of the page's boxes and falls or jumps to the next box as you scroll. */
 export function RobotPet() {
@@ -41,7 +45,7 @@ export function RobotPet() {
     };
     const clampX = (x: number, p: Plat, w: number) =>
       Math.max(Math.max(p.left, 0), Math.min(x, Math.min(p.right, document.documentElement.clientWidth) - w));
-    const setGround = (st: State) => { s.state = st; el.classList.toggle('air', st === 'air'); };
+    const setGround = (st: State) => { s.state = st; el.classList.toggle('air', st === 'air'); el.classList.toggle('climb', st === 'climb'); };
 
     const greet = () => {
       const sec = els[s.plat]?.closest('section[id]')?.id ?? 'top';
@@ -64,13 +68,14 @@ export function RobotPet() {
       const h = el.offsetHeight;
       if (p.top > s.y) s.y = Math.max(s.y, scrollY - h);
       else s.y = Math.min(s.y, scrollY + innerHeight + h);
-      s.vy = vy ?? (p.top < s.y ? jumpSpeed(s.y - p.top) : 0);
       setPose('stand');
+      if (vy === undefined && p.top < s.y) { setGround('climb'); return; } // box above: climb up to it
+      s.vy = vy ?? 0;
       setGround('air');
     };
 
     hop.current = () => {
-      if (s.state === 'air' || reduced) return;
+      if (s.state === 'air' || s.state === 'climb' || reduced) return;
       s.vy = -620; setGround('air'); setWalking(false); setPose('thumbs');
       setHearts((n) => n + 1);
     };
@@ -98,17 +103,24 @@ export function RobotPet() {
       }
 
       const p = plats[s.plat];
-      if (p && s.state === 'air') {
+      const land = () => {
+        setGround('land'); s.until = now + 260;
+        el.classList.add('landed');
+        later(260, () => el.classList.remove('landed'));
+        greet();
+      };
+      if (p && s.state === 'climb') {
+        s.y = climbStep(s.y, p.top, dt);
+        s.x += (s.tx - s.x) * Math.min(1, dt * 5);
+        if (s.y <= p.top) land();
+      } else if (p && s.state === 'air') {
         const prevY = s.y;
         s.vy = Math.min(s.vy + GRAVITY * dt, 2200);
         s.y += s.vy * dt;
         s.x += (s.tx - s.x) * Math.min(1, dt * 5);
         if (s.vy > 0 && prevY <= p.top + 1 && s.y >= p.top) {
           s.y = p.top;
-          setGround('land'); s.until = now + 260;
-          el.classList.add('landed');
-          later(260, () => el.classList.remove('landed'));
-          greet();
+          land();
         } else if (s.vy > 0 && prevY > p.top + 1) {
           s.y = p.top; setGround('walk'); // failsafe: the box moved under us
         }
@@ -149,7 +161,7 @@ export function RobotPet() {
       {pose === 'nap' && <span className="pet-z" aria-hidden="true">zZz</span>}
       {hearts > 0 && <span className="pet-heart" key={hearts} aria-hidden="true">♥</span>}
       <div className="pet-body" onClick={() => hop.current()} onPointerEnter={() => setPose((p) => (p === 'stand' ? 'wave' : p))}>
-        <Robot pose={pose} walking={walking} talking={say !== ''} />
+        <Robot3D pose={pose} walking={walking} talking={say !== ''} />
       </div>
       <button type="button" className="pet-hide" onClick={() => { sessionStorage.setItem('robot-pet-hidden', '1'); setHidden(true); }}>
         Hide robot

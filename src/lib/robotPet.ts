@@ -16,7 +16,10 @@ export function pickPlatform(plats: Plat[], viewTop: number, viewBottom: number,
   return best;
 }
 
-/** Upward launch speed that clears `rise` px with some headroom. */
-export function jumpSpeed(rise: number): number {
-  return -Math.sqrt(2 * GRAVITY * (Math.max(rise, 0) + 40));
+export const CLIMB_SPEED = 380; // px/s
+
+/** Feet height after climbing for `dt` seconds toward a box top above; never past the top. */
+export function climbStep(y: number, top: number, dt: number): number {
+  return Math.max(top, y - CLIMB_SPEED * dt);
 }
+

@@ -406,6 +406,8 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 .pet-body{pointer-events:auto;cursor:pointer}
 .pet[data-dir="-1"] .robot{transform:scaleX(-1)}
 .pet .robot{width:100%;transition:transform .15s}
+.robot3d{width:100%;aspect-ratio:320/300}.robot3d canvas{display:block}
+.pet.climb .robot-arm-l{transform:rotate(165deg)}.pet.climb .robot-arm-r{transform:rotate(-165deg)}
 .pet.landed .pet-body{animation:pet-squash .26s ease-out}
 @keyframes pet-squash{0%{transform:scale(1.15,.8)}60%{transform:scale(.95,1.05)}100%{transform:none}}
 .pet.air .robot-leg-l{rotate:-10deg}.pet.air .robot-leg-r{rotate:10deg}
