@@ -12,7 +12,6 @@ export function Levels() {
       <div className="wrap">
         <div className="sec-head">
           <h2 id="levels-title">Website levels</h2>
-          <p>Three levels for any kind of business: a shop, a school, a service or an internal tool. The demos use one sample business so you can compare them side by side.</p>
         </div>
         <ul className="levels">
           {LEVELS.map((l) => (

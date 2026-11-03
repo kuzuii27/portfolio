@@ -119,7 +119,8 @@ describe('site content', () => {
   it('level descriptions are generic, not tied to the clinic sample', () => {
     const copy = readFileSync('src/lib/levels.ts', 'utf8') + readFileSync('src/components/Levels.tsx', 'utf8');
     expect(copy).not.toMatch(/dentist|clinic|HMO|patient/i);
-    expect(copy).toContain('any kind of business');
+    expect(copy).not.toContain('any kind of business');
+    expect(readFileSync('src/app/page.tsx', 'utf8')).not.toContain('What I use every day');
   });
   it('header has no name or logo, and centres the section links between side columns', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');

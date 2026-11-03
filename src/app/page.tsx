@@ -77,7 +77,6 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head">
               <h2 id="skills-title">Skills, with honest levels</h2>
-              <p>What I use every day, what I have shipped with, and what I only know the basics of.</p>
             </div>
             <div className="skills">
               {SKILLS.map((s) => (
