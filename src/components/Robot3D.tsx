@@ -107,6 +107,15 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
     );
     body.add(head);
 
+    // cleaning props: a mop held in front, a cloth in the right hand
+    const mop = group(0, 0.95, 0.5,
+      mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), joint, 0, -0.5, 0),
+      mesh(new RoundedBoxGeometry(0.5, 0.08, 0.2, 2, 0.03), new THREE.MeshStandardMaterial({ color: 0x7dd3fc, roughness: 0.9 }), 0, -1.0, 0),
+    );
+    body.add(mop);
+    const cloth = mesh(new RoundedBoxGeometry(0.2, 0.07, 0.2, 2, 0.03), new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.9 }), 0, -0.66, 0.08);
+    armR.add(cloth);
+
     const shadow = mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14, depthWrite: false }), 0, 0.01, 0);
     shadow.rotation.x = -Math.PI / 2;
     robot.add(shadow);
@@ -128,7 +137,7 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
     addEventListener('pointermove', onPointer, { passive: true });
 
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pet = el.closest('.pet');
+    const pet = el.closest('.pet, .case-bot');
     const ease = (o: THREE.Object3D, k: number, x: number, y: number, z: number) => {
       o.rotation.x += (x - o.rotation.x) * k;
       o.rotation.y += (y - o.rotation.y) * k;
@@ -138,6 +147,8 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
     let raf = 0;
     let last = performance.now();
     let t = 0;
+    let lastPose: Pose = 'stand';
+    let flipAt = -9;
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -148,11 +159,30 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       const climb = pet?.classList.contains('climb') ?? false;
       const k = reduced ? 1 : Math.min(1, dt * 10);
       const s = Math.sin(t * 11);
+      if (p === 'flip' && lastPose !== 'flip') flipAt = t;
+      lastPose = p;
+      const flipQ = p === 'flip' ? Math.min(1, (t - flipAt) / 0.7) : 1;
+      const flipping = flipQ < 1;
+      const sit = p === 'sit' && !walk && !air && !climb;
+      const wipe = p === 'wipe' && !walk && !air && !climb;
 
-      // facing: toward the walk direction, back to us while climbing
-      ease(robot, k, 0, climb ? Math.PI : walk ? dir * 0.9 : dir * 0.3, 0);
-      body.position.y = walk ? Math.abs(s) * 0.05 : climb ? Math.abs(Math.sin(t * 8)) * 0.06 : Math.sin(t * 1.6) * 0.02;
-      shadow.visible = !air && !climb;
+      // facing: toward the walk direction, back to us while climbing or wiping, side-on for the flip so it reads
+      ease(robot, flipping ? 1 : k, 0, climb || wipe ? Math.PI : flipping ? -dir * Math.PI / 2 : walk ? dir * 0.9 : dir * 0.3, 0);
+      body.position.set(0, walk ? Math.abs(s) * 0.05 : climb ? Math.abs(Math.sin(t * 8)) * 0.06 : sit ? -0.55 : Math.sin(t * 1.6) * 0.02, 0);
+      body.rotation.x = 0;
+      body.scale.setScalar(1);
+      if (flipping) {
+        // tucked backflip around the middle of the body (y = 1.1)
+        const q = flipQ < 0.5 ? 2 * flipQ * flipQ : 1 - (-2 * flipQ + 2) ** 2 / 2;
+        const a = -2 * Math.PI * q;
+        body.rotation.x = a;
+        body.position.set(0, 1.1 - 1.1 * Math.cos(a), -1.1 * Math.sin(a));
+        body.scale.setScalar(0.8);
+      }
+      shadow.visible = !air && !climb && !flipping;
+      mop.visible = p === 'mop' && !air && !climb;
+      mop.rotation.set(-0.35, 0, Math.sin(t * 6) * 0.35);
+      cloth.visible = wipe;
 
       // limbs as [forward swing (negative = forward/up), outward spread] per limb
       let aL = [0, 0.12], aR = [0, 0.12], lL = [0, 0], lR = [0, 0];
@@ -162,9 +192,18 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
         lL = [-0.5 - c * 0.4, 0]; lR = [-0.5 + c * 0.4, 0];
       } else if (air) {
         aL = [0, 2.3]; aR = [0, 2.3]; lL = [0, 0.25]; lR = [0, 0.25];
+      } else if (flipping) {
+        aL = [-1.0, 0.2]; aR = [-1.0, 0.2]; lL = [-1.3, 0]; lR = [-1.3, 0];
+      } else if (p === 'mop') {
+        aL = [-0.9, -0.05]; aR = [-0.9, -0.05];
+        if (walk) { lL = [-s * 0.3, 0]; lR = [s * 0.3, 0]; }
       } else if (walk) {
         aL = [s * 0.5, 0.12]; aR = [-s * 0.5, 0.12]; lL = [-s * 0.55, 0]; lR = [s * 0.55, 0];
-      } else if (p === 'wave') aR = [0, 2.6 + Math.sin(t * 12) * 0.35];
+      } else if (sit) {
+        const w = Math.sin(t * 4) * 0.3;
+        aL = [-0.3, 0.25]; aR = [-0.3, 0.25]; lL = [-1.4 + w, 0.1]; lR = [-1.4 - w, 0.1];
+      } else if (wipe) aR = [-2.6, 0.3 + Math.sin(t * 9) * 0.4];
+      else if (p === 'wave') aR = [0, 2.6 + Math.sin(t * 12) * 0.35];
       else if (p === 'thumbs') aR = [-1.2, 0.6];
       else if (p === 'present') { aL = [-0.9, 0.9]; aR = [-0.9, 0.9]; }
       else if (p === 'point') aL = [0, 1.55];
@@ -176,7 +215,7 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       ease(legR, k, lR[0], 0, lR[1]);
 
       const nap = p === 'nap' && !walk && !air && !climb;
-      ease(head, k, nap ? 0.25 : look.y * 0.35, climb ? 0 : look.x * 0.6 - robot.rotation.y * 0.4, nap ? 0.18 : p === 'think' ? -0.12 : 0);
+      ease(head, k, nap ? 0.25 : look.y * 0.35, climb || wipe ? 0 : look.x * 0.6 - robot.rotation.y * 0.4, nap ? 0.18 : p === 'think' ? -0.12 : 0);
       const blink = nap ? 0.15 : t % 5.5 > 5.3 ? 0.1 : 1;
       eyes.scale.y += (blink - eyes.scale.y) * Math.min(1, k * 2);
       mouth.scale.y = talk && !reduced ? 1 + Math.abs(Math.sin(t * 20)) * 1.4 : 1;

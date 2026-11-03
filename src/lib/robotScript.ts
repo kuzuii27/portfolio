@@ -1,6 +1,6 @@
 // What the robot guide says and does in each section. 'top' is the hero.
 
-export type Pose = 'stand' | 'nap' | 'type' | 'wave' | 'point' | 'present' | 'think' | 'thumbs';
+export type Pose = 'stand' | 'nap' | 'type' | 'wave' | 'point' | 'present' | 'think' | 'thumbs' | 'mop' | 'wipe' | 'flip' | 'sit';
 
 export const SECTION_IDS = ['top', 'work', 'levels', 'skills', 'about', 'contact'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
