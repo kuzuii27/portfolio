@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Robot } from '@/components/Robot';
 import { lineFor, type Pose } from '@/lib/robotScript';
-import { climbStep, pickPlatform, GRAVITY, type Plat } from '@/lib/robotPet';
+import { climbStep, headingInReach, pickPlatform, GRAVITY, type Plat } from '@/lib/robotPet';
 
 // three.js loads after the page; the SVG robot shows meanwhile.
 const Robot3D = dynamic(() => import('@/components/Robot3D').then((m) => m.Robot3D), { ssr: false, loading: () => <Robot /> });
@@ -14,7 +14,7 @@ const PLATFORMS = '.facts, .case, .levels > li, .skill-row, .contacts, #contact 
 const IDLE: Pose[] = ['wave', 'think', 'thumbs', 'present', 'nap'];
 const FEET = 286 / 300; // where the feet are in the robot's SVG
 
-type State = 'air' | 'climb' | 'land' | 'walk' | 'idle';
+type State = 'air' | 'climb' | 'land' | 'walk' | 'idle' | 'mop' | 'wipe-go' | 'wipe';
 
 /** A playful robot that walks on top of the page's boxes and falls or jumps to the next box as you scroll. */
 export function RobotPet() {
@@ -25,6 +25,8 @@ export function RobotPet() {
   const [say, setSay] = useState('');
   const [hearts, setHearts] = useState(0);
   const [hidden, setHidden] = useState(false);
+  const [shine, setShine] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [sparkles, setSparkles] = useState(0);
 
   useEffect(() => {
     const el = box.current;
@@ -36,6 +38,7 @@ export function RobotPet() {
     window.addEventListener('resize', onResize);
 
     const seen = new Set<string>();
+    let wipeOn: Element | null = null;
     const s = { plat: -1, x: 0, y: 0, vy: 0, tx: 0, dir: 1, state: 'walk' as State, until: 0 }; // 'walk' with no box makes the first frame pick one
     const timers: number[] = [];
     const later = (ms: number, f: () => void) => timers.push(window.setTimeout(f, ms));
@@ -45,7 +48,27 @@ export function RobotPet() {
     };
     const clampX = (x: number, p: Plat, w: number) =>
       Math.max(Math.max(p.left, 0), Math.min(x, Math.min(p.right, document.documentElement.clientWidth) - w));
-    const setGround = (st: State) => { s.state = st; el.classList.toggle('air', st === 'air'); el.classList.toggle('climb', st === 'climb'); };
+    const setGround = (st: State) => { s.state = st; el.dataset.state = st; el.classList.toggle('air', st === 'air'); el.classList.toggle('climb', st === 'climb'); };
+
+    const stopClean = () => setShine(null);
+
+    // Idle cleaning: wipe the section heading just above this box if the arm reaches it, otherwise mop the box.
+    const clean = (now: number, p: Plat, w: number, h: number) => {
+      const reach = h * 0.7; // the raised arm reaches about 0.65 of the robot's height
+      for (const e of document.querySelectorAll('section h2')) {
+        const r = document.createRange();
+        r.selectNodeContents(e); // the text itself, not the full-width block
+        const t = r.getBoundingClientRect();
+        if (!headingInReach({ left: t.left + scrollX, right: t.right + scrollX, bottom: t.bottom + scrollY }, p, reach)) continue;
+        wipeOn = e;
+        s.tx = clampX(t.left + scrollX + t.width / 2 - w / 2, p, w);
+        setGround('wipe-go'); setWalking(true); setPose('stand');
+        return;
+      }
+      setGround('mop'); s.until = now + 3000;
+      setWalking(true); setPose('mop');
+      setShine({ left: Math.max(p.left, 0), top: p.top, width: Math.min(p.right, document.documentElement.clientWidth) - Math.max(p.left, 0) });
+    };
 
     const greet = () => {
       const sec = els[s.plat]?.closest('section[id]')?.id ?? 'top';
@@ -61,6 +84,7 @@ export function RobotPet() {
     const launch = (target: number, plats: Plat[], w: number, vy?: number) => {
       const p = plats[target];
       s.plat = target;
+      stopClean();
       s.tx = clampX(s.x, p, w);
       setWalking(false);
       if (reduced) { s.x = s.tx; s.y = p.top; setGround('walk'); greet(); return; }
@@ -76,6 +100,7 @@ export function RobotPet() {
 
     hop.current = () => {
       if (s.state === 'air' || s.state === 'climb' || reduced) return;
+      stopClean();
       s.vy = -620; setGround('air'); setWalking(false); setPose('thumbs');
       setHearts((n) => n + 1);
     };
@@ -128,6 +153,24 @@ export function RobotPet() {
         s.y = p.top; // stay glued if the layout shifts
         if (s.state === 'land' && now > s.until) { setGround('walk'); setWalking(true); setPose('stand'); }
         else if (s.state === 'idle' && now > s.until) { setGround('walk'); setWalking(true); setPose('stand'); }
+        else if (s.state === 'mop') {
+          s.x += s.dir * 25 * dt;
+          const min = Math.max(p.left, 0);
+          const max = Math.min(p.right, document.documentElement.clientWidth) - w;
+          if (s.x < min || s.x > max) { s.x = Math.max(min, Math.min(s.x, max)); s.dir *= -1; }
+          if (now > s.until) { stopClean(); setGround('walk'); setPose('stand'); }
+        } else if (s.state === 'wipe-go') {
+          const d = s.tx - s.x;
+          s.dir = d < 0 ? -1 : 1;
+          s.x += Math.sign(d) * Math.min(Math.abs(d), 55 * dt);
+          if (Math.abs(d) < 1) { setGround('wipe'); s.until = now + 2400; setWalking(false); setPose('wipe'); }
+        } else if (s.state === 'wipe' && now > s.until) {
+          const e = wipeOn;
+          e?.classList.add('pet-gleam');
+          later(1200, () => e?.classList.remove('pet-gleam'));
+          setSparkles((n) => n + 1);
+          setGround('walk'); setWalking(true); setPose('stand');
+        }
         else if (s.state === 'walk') {
           s.x += s.dir * 55 * dt;
           const min = Math.max(p.left, 0);
@@ -139,8 +182,11 @@ export function RobotPet() {
             if (below >= 0 && Math.random() < 0.4) launch(below, plats, w, -260);
             else s.dir *= -1;
           } else if (Math.random() < dt * 0.22) {
-            setGround('idle'); s.until = now + 1800 + Math.random() * 2600;
-            setWalking(false); setPose(IDLE[Math.floor(Math.random() * IDLE.length)]);
+            if (!reduced && Math.random() < 1 / 3) clean(now, p, w, h);
+            else {
+              setGround('idle'); s.until = now + 1800 + Math.random() * 2600;
+              setWalking(false); setPose(IDLE[Math.floor(Math.random() * IDLE.length)]);
+            }
           }
         }
       }
@@ -151,15 +197,21 @@ export function RobotPet() {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); window.removeEventListener('resize', onResize); };
+    return () => {
+      cancelAnimationFrame(raf); timers.forEach(clearTimeout); window.removeEventListener('resize', onResize);
+      document.querySelectorAll('.pet-gleam').forEach((e) => e.classList.remove('pet-gleam'));
+    };
   }, []);
 
   if (hidden) return null;
   return (
+    <>
+    {shine && <span className="pet-shine" aria-hidden="true" style={{ left: shine.left, top: shine.top, width: shine.width }} />}
     <div className="pet" ref={box}>
       {say && <p className="robot-say" aria-hidden="true">{say}</p>}
       {pose === 'nap' && <span className="pet-z" aria-hidden="true">zZz</span>}
       {hearts > 0 && <span className="pet-heart" key={hearts} aria-hidden="true">♥</span>}
+      {sparkles > 0 && <span className="pet-sparkles" key={`s${sparkles}`} aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>}
       <div className="pet-body" onClick={() => hop.current()} onPointerEnter={() => setPose((p) => (p === 'stand' ? 'wave' : p))}>
         <Robot3D pose={pose} walking={walking} talking={say !== ''} />
       </div>
@@ -167,5 +219,6 @@ export function RobotPet() {
         Hide robot
       </button>
     </div>
+    </>
   );
 }
