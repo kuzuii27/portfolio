@@ -381,3 +381,44 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 @keyframes robot-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.robot *,.robot{animation:none!important;transition:none!important}}
 @media (max-width:1024px){.robot{width:min(260px,70%)}}
+
+/* robot poses: arms swing from the shoulder (SVG user units) */
+.robot-arm{transform-box:view-box;transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+.robot-arm-l{transform-origin:112px 156px}.robot-arm-r{transform-origin:216px 156px}
+[data-pose=wave] .robot-arm-r{animation:robot-wave .45s ease-in-out 8 alternate;transform:rotate(-150deg)}
+[data-pose=point] .robot-arm-l{transform:rotate(95deg)}
+[data-pose=present] .robot-arm-l{transform:rotate(60deg)}[data-pose=present] .robot-arm-r{transform:rotate(-60deg)}
+[data-pose=think] .robot-arm-r{transform:rotate(145deg)}[data-pose=think] .robot-head{rotate:-6deg}
+[data-pose=thumbs] .robot-arm-r{transform:rotate(-125deg)}
+@keyframes robot-wave{from{transform:rotate(-135deg)}to{transform:rotate(-170deg)}}
+.robot-leg{transform-box:view-box}.robot-leg-l{transform-origin:146px 222px}.robot-leg-r{transform-origin:182px 222px}
+.walking .robot-leg-l{animation:robot-step .3s ease-in-out infinite alternate}
+.walking .robot-leg-r{animation:robot-step .3s ease-in-out infinite alternate-reverse}
+@keyframes robot-step{from{transform:rotate(16deg)}to{transform:rotate(-16deg)}}
+.robot-mouth{transform-box:fill-box;transform-origin:center}
+.talking .robot-mouth{animation:robot-talk .16s infinite alternate}
+@keyframes robot-talk{to{transform:scaleY(2.4)}}
+
+/* speech bubble */
+.robot-say{min-height:1.4em;margin:0 0 4px;padding:8px 12px;border:1px solid var(--line);border-radius:14px 14px 14px 4px;background:var(--bg-2);color:var(--fg);font-size:14px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.robot-say:empty{visibility:hidden}
+.hero-robot{display:grid;justify-items:center;gap:4px}
+.hero-robot .robot-say{max-width:320px}
+
+/* docked companion after the hero */
+.guide{position:fixed;right:16px;bottom:12px;z-index:40;width:130px;display:grid;justify-items:end;transform:translateY(130%);opacity:0;transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .3s;pointer-events:none}
+.guide.on{transform:none;opacity:1}
+.guide.on .guide-hide{pointer-events:auto}
+.guide .robot{width:100%}
+.guide .robot-say{position:absolute;right:100%;bottom:60%;width:max-content;max-width:240px;margin-right:4px;border-radius:14px 14px 4px 14px}
+.guide.walking .robot{animation:guide-walk .9s ease-out}
+@keyframes guide-walk{from{transform:translateX(60px)}to{transform:none}}
+.guide.tucked{transform:translateX(45%)}
+.guide-hide{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg-2);cursor:pointer}
+.guide-hide:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+@media (max-width:768px){
+  .guide{right:auto;left:8px;width:84px;justify-items:start}
+  .guide .robot-say{right:auto;left:100%;bottom:55%;max-width:min(220px,60vw);margin:0 0 0 4px;border-radius:14px 14px 14px 4px;font-size:13px}
+  .guide.tucked,.guide.on.quiet{transform:translateX(-55%)} /* phone: peek from the edge when not talking, so it doesn't sit on content */
+}
+@media (prefers-reduced-motion:reduce){.guide,.guide *{transition:none!important;animation:none!important}}

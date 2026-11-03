@@ -1,9 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { Pose } from '@/lib/robotScript';
 
-/** Friendly 3D-looking robot typing on a laptop. Head and eyes follow the pointer; decorative only. */
-export function Robot() {
+/**
+ * Friendly 3D-looking robot, decorative only. Seated = at the laptop; otherwise standing on legs.
+ * Arms take the pose through CSS ([data-pose]); head and eyes follow the pointer.
+ */
+export function Robot({ pose = 'type', seated = true, talking = false, walking = false }: { pose?: Pose; seated?: boolean; talking?: boolean; walking?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +29,7 @@ export function Robot() {
   }, []);
 
   return (
-    <div className="robot" ref={ref} aria-hidden="true">
+    <div className={`robot${talking ? ' talking' : ''}${walking ? ' walking' : ''}`} ref={ref} aria-hidden="true" data-pose={pose}>
       <svg viewBox="0 0 320 300" className="robot-svg">
         <defs>
           <radialGradient id="rb-shell" cx="35%" cy="30%" r="75%">
@@ -51,14 +55,22 @@ export function Robot() {
           </filter>
         </defs>
 
-        <ellipse className="robot-shadow" cx="160" cy="286" rx="104" ry="10" />
+        <ellipse className="robot-shadow" cx="164" cy="288" rx="96" ry="9" />
 
         <g className="robot-body">
-          {/* legs (seated) */}
-          <rect x="104" y="226" width="58" height="30" rx="15" fill="url(#rb-shell)" />
-          <rect x="166" y="226" width="58" height="30" rx="15" fill="url(#rb-shell)" />
-          <rect x="112" y="250" width="24" height="34" rx="10" fill="url(#rb-joint)" />
-          <rect x="196" y="250" width="24" height="34" rx="10" fill="url(#rb-joint)" />
+          {seated ? (
+            <g>
+              <rect x="104" y="226" width="58" height="30" rx="15" fill="url(#rb-shell)" />
+              <rect x="166" y="226" width="58" height="30" rx="15" fill="url(#rb-shell)" />
+              <rect x="112" y="250" width="24" height="34" rx="10" fill="url(#rb-joint)" />
+              <rect x="196" y="250" width="24" height="34" rx="10" fill="url(#rb-joint)" />
+            </g>
+          ) : (
+            <g>
+              <g className="robot-leg robot-leg-l"><rect x="134" y="220" width="24" height="60" rx="11" fill="url(#rb-shell)" /><rect x="128" y="274" width="34" height="12" rx="6" fill="url(#rb-joint)" /></g>
+              <g className="robot-leg robot-leg-r"><rect x="170" y="220" width="24" height="60" rx="11" fill="url(#rb-shell)" /><rect x="166" y="274" width="34" height="12" rx="6" fill="url(#rb-joint)" /></g>
+            </g>
+          )}
 
           {/* torso */}
           <rect x="118" y="134" width="92" height="96" rx="34" fill="url(#rb-shell)" />
@@ -66,20 +78,27 @@ export function Robot() {
           <circle className="robot-core" cx="164" cy="166" r="6" fill="#38bdf8" filter="url(#rb-glow)" />
           <rect x="144" y="210" width="40" height="12" rx="6" fill="url(#rb-joint)" />
 
-          {/* shoulders and arms reaching to the keyboard */}
+          {/* arms swing from the shoulder */}
+          <g className="robot-arm robot-arm-l">
+            <rect x="99" y="150" width="26" height="60" rx="13" fill="url(#rb-shell)" />
+            <circle cx="112" cy="214" r="12" fill="url(#rb-shell)" />
+          </g>
+          <g className="robot-arm robot-arm-r">
+            <rect x="203" y="150" width="26" height="60" rx="13" fill="url(#rb-shell)" />
+            <circle cx="216" cy="214" r="12" fill="url(#rb-shell)" />
+          </g>
           <circle cx="114" cy="150" r="15" fill="url(#rb-joint)" />
           <circle cx="214" cy="150" r="15" fill="url(#rb-joint)" />
-          <rect x="96" y="150" width="26" height="58" rx="13" fill="url(#rb-shell)" />
-          <rect x="206" y="150" width="26" height="58" rx="13" fill="url(#rb-shell)" />
 
-          {/* laptop: lid faces us, keyboard toward the robot */}
-          <path d="M92 236 L236 236 L250 246 L78 246 Z" fill="#9aa4af" />
-          <rect x="102" y="166" width="124" height="74" rx="8" fill="url(#rb-lid)" />
-          <text x="164" y="210" textAnchor="middle" className="robot-logo">K</text>
-
-          {/* hands on the keys */}
-          <g className="robot-hand robot-hand-l"><ellipse cx="114" cy="232" rx="14" ry="9" fill="url(#rb-shell)" /></g>
-          <g className="robot-hand robot-hand-r"><ellipse cx="214" cy="232" rx="14" ry="9" fill="url(#rb-shell)" /></g>
+          {seated && (
+            <g>
+              <path d="M92 236 L236 236 L250 246 L78 246 Z" fill="#9aa4af" />
+              <rect x="102" y="166" width="124" height="74" rx="8" fill="url(#rb-lid)" />
+              <text x="164" y="210" textAnchor="middle" className="robot-logo">K</text>
+              <g className="robot-hand robot-hand-l"><ellipse cx="114" cy="232" rx="14" ry="9" fill="url(#rb-shell)" /></g>
+              {pose === 'type' && <g className="robot-hand robot-hand-r"><ellipse cx="214" cy="232" rx="14" ry="9" fill="url(#rb-shell)" /></g>}
+            </g>
+          )}
         </g>
 
         {/* head follows the pointer */}
@@ -95,7 +114,7 @@ export function Robot() {
             <g className="robot-eye"><circle cx="146" cy="80" r="10" fill="none" stroke="#38bdf8" strokeWidth="5" filter="url(#rb-glow)" /></g>
             <g className="robot-eye"><circle cx="182" cy="80" r="10" fill="none" stroke="#38bdf8" strokeWidth="5" filter="url(#rb-glow)" /></g>
           </g>
-          <path d="M154 108 Q164 115 174 108" stroke="#7b8693" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path className="robot-mouth" d="M154 108 Q164 115 174 108" stroke="#7b8693" strokeWidth="3" fill="none" strokeLinecap="round" />
           <ellipse cx="140" cy="40" rx="18" ry="9" fill="#fff" opacity=".7" />
         </g>
       </svg>
