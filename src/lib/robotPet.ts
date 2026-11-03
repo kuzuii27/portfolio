@@ -16,6 +16,11 @@ export function pickPlatform(plats: Plat[], viewTop: number, viewBottom: number,
   return best;
 }
 
+/** A heading (page coords) sits just above box `p`, within `reach` px, and over it horizontally, so the robot can wipe it. */
+export function headingInReach(h: { left: number; right: number; bottom: number }, p: Plat, reach: number): boolean {
+  return h.bottom <= p.top && p.top - h.bottom <= reach && h.left < p.right && h.right > p.left;
+}
+
 export const CLIMB_SPEED = 380; // px/s
 
 /** Feet height after climbing for `dt` seconds toward a box top above; never past the top. */

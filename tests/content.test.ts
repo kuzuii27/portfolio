@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { CASES } from '@/lib/cases';
 
 // sha256 of private names that must never appear on the site (kept hashed so this public repo doesn't name them)
 const BANNED = new Set([
@@ -20,6 +21,14 @@ const files = (dir: string): string[] =>
   });
 
 describe('site content', () => {
+  it('every case has a short brag line for the robot', () => {
+    for (const c of CASES) {
+      expect(c.brag.length).toBeGreaterThan(0);
+      expect(c.brag.length).toBeLessThanOrEqual(80);
+      expect(hasBanned(c.brag)).toBe(false);
+    }
+  });
+
   it('never names employers or clients', () => {
     const text = [...files('src'), ...files('public/demos')].filter((f) => !/\.(webp|png|jpe?g|ico)$/i.test(f));
     const hits = text.filter((f) => hasBanned(readFileSync(f, 'utf8')));

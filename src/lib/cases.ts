@@ -1,11 +1,12 @@
 // Case studies: facts from docs/BRIEF.txt only. svg is static, trusted markup.
-export interface CaseStudy { title: string; status: 'Built' | 'Delivered' | 'In progress'; note?: string; summary: string; stack: string[]; problem: string; built: string[]; lesson: string; svg: string }
+export interface CaseStudy { title: string; status: 'Built' | 'Delivered' | 'In progress'; note?: string; summary: string; brag: string; stack: string[]; problem: string; built: string[]; lesson: string; svg: string }
 
 export const CASES: CaseStudy[] = [
   {
     "title": "Field Photo Capture System",
     "status": "Built",
     "summary": "An offline-first Android app that queues photos on the phone and syncs them to a small .NET host once it is back online.",
+    "brag": "No signal? No problem. Photos wait on the phone and sync later!",
     "stack": [
       "Flutter",
       "Dart",
@@ -27,6 +28,7 @@ export const CASES: CaseStudy[] = [
     "title": "Fleet Tracking Admin Dashboard",
     "status": "Built",
     "summary": "A full admin dashboard for a GPS fleet-telematics company, written from scratch without a framework.",
+    "brag": "A whole admin dashboard, built from scratch. No framework!",
     "stack": [
       "HTML",
       "CSS",
@@ -45,6 +47,7 @@ export const CASES: CaseStudy[] = [
     "status": "Built",
     "note": "Contributed · previous employer (fintech)",
     "summary": "Work on a fintech payments platform: a C# ASP.NET MVC backend built with CQRS, and a React frontend.",
+    "brag": "Commands and queries kept apart with CQRS. Neat, right?",
     "stack": [
       "C#",
       "ASP.NET MVC",
@@ -64,6 +67,7 @@ export const CASES: CaseStudy[] = [
     "status": "In progress",
     "note": "R&D",
     "summary": "A .NET receiver for ADAS/DMS alarm videos sent by a 4G AI dashcam, turning them into playable MP4 files.",
+    "brag": "Raw dashcam video in, playable MP4 out. Beep boop!",
     "stack": [
       ".NET",
       "TCP",
@@ -85,6 +89,7 @@ export const CASES: CaseStudy[] = [
     "title": "Client Website Prototype Workflow",
     "status": "Delivered",
     "summary": "Throwaway offline demo sites that let a client react to a real page before development starts.",
+    "brag": "Change your mind on the demo, not on the real code. Smart!",
     "stack": [
       "HTML",
       "CSS",
@@ -103,6 +108,7 @@ export const CASES: CaseStudy[] = [
     "title": "Teltonika Device Provisioning Automation",
     "status": "Built",
     "summary": "A Windows desktop tool that configures GPS trackers on its own: plug a device in and it loads the right settings, writes them and records the device's IMEI and SIM number.",
+    "brag": "Plug in a tracker and it sets itself up. No more clicking by hand!",
     "stack": [
       "Python",
       "tkinter",
@@ -125,6 +131,7 @@ export const CASES: CaseStudy[] = [
     "title": "From Inquiry to Finished Website",
     "status": "Delivered",
     "summary": "How a client goes from a first message to a live site: a clickable demo first, then a tested build and a monitored launch.",
+    "brag": "From first message to live site, with a demo first!",
     "stack": [
       "HTML/CSS/JS demos",
       "Next.js",
