@@ -45,7 +45,8 @@ export default function Home() {
               <p className="lede">Strongest in C#, ASP.NET and SQL Server, and always growing: React, Next.js, Flutter and Python when the job needs them, learned by building.</p>
               <div className="ctas">
                 <a className="btn btn-primary" href="#contact" data-inquire="project">Start a project<Arrow /></a>
-                <a className="btn btn-ghost" href="#contact" data-inquire="job">Hiring? Let&apos;s talk</a>
+                <a className="btn btn-ghost" href="#contact" data-inquire="job">Hiring? Let's talk</a>
+                <a className="btn btn-ghost" href="https://wa.me/639000000000" target="_blank" rel="noopener" style={{ borderColor: '#25d366', color: '#25d366' }}>Chat on WhatsApp</a>
               </div>
               <p className="avail"><span className="pill blue"><span className="dot" />Open to freelance &amp; full-time</span></p>
             </div>

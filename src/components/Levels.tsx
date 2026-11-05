@@ -17,6 +17,7 @@ export function Levels() {
           {LEVELS.map((l) => (
             <li key={l.id} className="level-card">
               <h3>{l.label}</h3>
+              <p className="level-price" style={{ fontWeight: 'bold', color: '#0ea5e9', fontSize: '1.25rem', margin: '0.25rem 0' }}>{l.price}</p>
               <p className="level-term">{l.term}</p>
               <p>{l.meaning}</p>
               <p className="level-sub">In the sample demo</p>
