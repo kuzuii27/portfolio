@@ -12,7 +12,7 @@ const Arrow = () => (
 const SKILLS = [
   { level: 'Primary', note: 'My strongest side', items: ['C#', 'ASP.NET MVC', 'ASP.NET Core', 'SQL Server', 'CQRS'], text: 'Backend work: APIs, data, and the structure around them.' },
   { level: 'Also', note: 'Shipped real work with it', items: ['React', 'HTML', 'CSS', 'JavaScript', 'Flutter', 'Dart'], text: 'Built a full admin dashboard in plain JavaScript, and an offline-first Android app in Flutter.' },
-  { level: 'Familiar', note: 'Basics only', items: ['PHP (basic)', 'MySQL / XAMPP'], text: 'Basic PHP syntax with MySQL. No PHP frameworks.' },
+  { level: 'Familiar', note: 'Basics only', items: ['PHP (basic)', 'MySQL / XAMPP'], text: 'Basic PHP syntax with MySQL.' },
   { level: 'Way of working', note: 'How the work gets done', items: ['AI-assisted development with human review', 'Smallest working solution', 'Verify before shipping'], text: 'I use AI coding assistants daily and review their output myself before anything ships.' },
 ];
 
