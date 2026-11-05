@@ -167,10 +167,14 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       const wipe = p === 'wipe' && !walk && !air && !climb;
 
       // facing: toward the walk direction, back to us while climbing or wiping, side-on for the flip so it reads
-      ease(robot, flipping ? 1 : k, 0, climb || wipe ? Math.PI : flipping ? -dir * Math.PI / 2 : sit ? dir * 0.8 : walk ? dir * 0.9 : dir * 0.3, 0);
+      const angry = p === 'angry' && !air && !climb;
+      const scrub = p === 'scrub' && !air && !climb;
+      ease(robot, flipping ? 1 : k, 0, climb || wipe ? Math.PI : flipping ? -dir * Math.PI / 2 : sit ? dir * 0.8 : angry ? 0 : scrub ? 0.15 : walk ? dir * 0.9 : dir * 0.3, 0);
       body.position.set(0, walk ? Math.abs(s) * 0.05 : climb ? Math.abs(Math.sin(t * 8)) * 0.06 : sit ? -0.55 : Math.sin(t * 1.6) * 0.02, 0);
       body.rotation.x = 0;
       body.scale.setScalar(1);
+      if (angry) { body.position.x = Math.sin(t * 55) * 0.03; body.position.y = Math.abs(Math.sin(t * 10)) * 0.06; } // trembling stomp
+      if (scrub) { body.rotation.x = 0.2; body.position.x = Math.sin(t * 16) * 0.04; body.position.y = -0.45; } // crouched low over the text
       if (flipping) {
         // tucked backflip around the middle of the body (y = 1.1)
         const q = flipQ < 0.5 ? 2 * flipQ * flipQ : 1 - (-2 * flipQ + 2) ** 2 / 2;
@@ -182,7 +186,7 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       shadow.visible = !air && !climb && !flipping;
       mop.visible = p === 'mop' && !air && !climb;
       mop.rotation.set(-0.35, 0, Math.sin(t * 6) * 0.35);
-      cloth.visible = wipe;
+      cloth.visible = wipe || scrub;
 
       // limbs as [forward swing (negative = forward/up), outward spread] per limb
       let aL = [0, 0.12], aR = [0, 0.12], lL = [0, 0], lR = [0, 0];
@@ -197,6 +201,16 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       } else if (p === 'mop') {
         aL = [-0.9, -0.05]; aR = [-0.9, -0.05];
         if (walk) { lL = [-s * 0.3, 0]; lR = [s * 0.3, 0]; }
+      } else if (angry) {
+        const pump = Math.sin(t * 14) * 0.35; // fists shaking over the head
+        aL = [-2.7 + pump, 0.4]; aR = [-2.7 - pump, 0.4];
+        const stomp = Math.sin(t * 10);
+        lL = [-Math.max(0, stomp) * 0.6, 0]; lR = [-Math.max(0, -stomp) * 0.6, 0];
+      } else if (scrub) {
+        aR = [-0.25, 0.55 + Math.sin(t * 18) * 0.35]; // arm down and out, towel rubbing at foot level
+        aL = [-0.3, 0.6]; // other arm out for balance
+        const st = walk ? Math.sin(t * 6) * 0.25 : 0;
+        lL = [-1.0 - st, 0.15]; lR = [-1.0 + st, 0.15]; // knees bent
       } else if (walk) {
         aL = [s * 0.5, 0.12]; aR = [-s * 0.5, 0.12]; lL = [-s * 0.55, 0]; lR = [s * 0.55, 0];
       } else if (sit) {
@@ -215,10 +229,12 @@ export function Robot3D({ pose = 'stand', talking = false, walking = false }: Pr
       ease(legR, k, lR[0], 0, lR[1]);
 
       const nap = p === 'nap' && !walk && !air && !climb;
-      ease(head, k, nap ? 0.25 : look.y * 0.35, climb || wipe ? 0 : look.x * 0.6 - robot.rotation.y * 0.4, nap ? 0.18 : p === 'think' ? -0.12 : 0);
-      const blink = nap ? 0.15 : t % 5.5 > 5.3 ? 0.1 : 1;
+      ease(head, k, nap ? 0.25 : angry ? 0.2 : scrub ? 0.15 : look.y * 0.35, climb || wipe ? 0 : angry ? 0 : look.x * 0.6 - robot.rotation.y * 0.4, nap ? 0.18 : p === 'think' ? -0.12 : 0);
+      if (angry) head.rotation.z = Math.sin(t * 40) * 0.07; // head shake
+      const blink = nap ? 0.15 : angry ? 0.5 : t % 5.5 > 5.3 ? 0.1 : 1; // narrowed glare when angry
       eyes.scale.y += (blink - eyes.scale.y) * Math.min(1, k * 2);
       mouth.scale.y = talk && !reduced ? 1 + Math.abs(Math.sin(t * 20)) * 1.4 : 1;
+      glow.color.set(p === 'angry' ? 0xef4444 : 0x38bdf8); // red when angry, shared by eyes/core/antenna
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(tick);

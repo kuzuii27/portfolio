@@ -428,6 +428,19 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 @keyframes pet-heart{to{opacity:0;translate:0 -36px;scale:1.4}}
 [data-pose=nap] .robot-eye{animation:none;transform:scaleY(.15)}
 [data-pose=nap] .robot-head{rotate:8deg}
+[data-pose=angry] .robot-arm-l{transform:rotate(155deg)}[data-pose=angry] .robot-arm-r{transform:rotate(-155deg)}
+[data-pose=angry] .robot-body{animation:robot-shake .09s linear infinite}
+@keyframes robot-shake{0%,100%{translate:0 0}25%{translate:-1.5px 0}75%{translate:1.5px 0}}
+[data-pose=angry] .robot-eye circle{stroke:#ef4444}
+[data-pose=angry] .robot-eye{animation:none;transform:scaleY(.5)}
+[data-pose=angry] .robot-core,[data-pose=angry] .robot-antenna{fill:#ef4444}
+[data-pose=angry] .robot-mouth{transform:scaleY(-1) translateY(-6px)}
+[data-pose=wipe] .robot-arm-r{transform:rotate(-170deg)}
+[data-pose=scrub] .robot-body{rotate:8deg}
+[data-pose=scrub] .robot-arm-r{animation:robot-scrub .12s ease-in-out infinite alternate}
+@keyframes robot-scrub{from{transform:rotate(-20deg)}to{transform:rotate(-60deg)}}
+.pet-anger{position:absolute;top:-2px;right:6px;font-size:20px;line-height:1;animation:pet-anger .5s ease-in-out infinite alternate}
+@keyframes pet-anger{from{scale:.85;rotate:-8deg}to{scale:1.15;rotate:8deg}}
 .pet-shine{position:absolute;z-index:29;height:2px;margin-top:-1px;pointer-events:none;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(125,211,252,.9),#fff,rgba(125,211,252,.9),transparent) no-repeat;background-size:30% 100%;animation:pet-shine 3s linear forwards}
 @keyframes pet-shine{from{background-position:-40% 0}to{background-position:140% 0}}
 .pet-gleam{background:linear-gradient(100deg,var(--fg) 40%,#7dd3fc 48%,#fff 50%,#7dd3fc 52%,var(--fg) 60%) 0 0/300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:pet-gleam 1.2s ease-out}
@@ -436,8 +449,10 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 .pet-sparkles i{position:absolute;font-style:normal;font-size:14px;animation:pet-spark .9s ease-out forwards}
 .pet-sparkles i:nth-child(1){left:0}.pet-sparkles i:nth-child(2){left:40%;animation-delay:.12s;color:#fbbf24}.pet-sparkles i:nth-child(3){left:80%;animation-delay:.24s}
 @keyframes pet-spark{0%{opacity:0;scale:.3}40%{opacity:1;scale:1.2}100%{opacity:0;translate:0 -18px;scale:.6}}
+.pet-scold{position:absolute;z-index:29;pointer-events:none;border-radius:4px;background:rgba(239,68,68,.35);box-shadow:0 0 0 2px rgba(239,68,68,.25);animation:pet-scold .35s ease-in-out 3 alternate}
+@keyframes pet-scold{from{opacity:1}to{opacity:.55}}
 .pet-hide{position:absolute;top:100%;left:50%;translate:-50% 2px;font-size:11px;white-space:nowrap;padding:1px 7px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg-2);cursor:pointer;opacity:0;pointer-events:auto;transition:opacity .2s}
 .pet:hover .pet-hide,.pet-hide:focus-visible{opacity:1}
 .pet-hide:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 @media (max-width:768px){.pet{width:64px}}
-@media (prefers-reduced-motion:reduce){.pet,.pet *,.pet-shine,.pet-gleam{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){.pet,.pet *,.pet-shine,.pet-gleam,.pet-scold{animation:none!important;transition:none!important}}
