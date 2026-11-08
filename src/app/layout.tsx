@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
+import { Bricolage_Grotesque, Figtree } from 'next/font/google';
 import './globals.css';
+
+const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display', display: 'swap' });
+const text = Figtree({ subsets: ['latin'], variable: '--font-text', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Kuzuii - Full-stack .NET developer',
@@ -12,11 +16,13 @@ const themeInit = `try{var t=localStorage.getItem('theme');document.documentElem
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${display.variable} ${text.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <a className="skip" href="#top">Skip to main content</a>
+        {children}</body>
     </html>
   );
 }

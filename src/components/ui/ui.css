@@ -1,0 +1,38 @@
+/* Theme crossfade: html colours animate when data-theme flips. */
+html {
+  transition: background-color 700ms, color 700ms, border-color 700ms;
+}
+
+/* Sun/moon morph: stacked icons in one grid cell, swapped by rotate + scale. */
+.theme-morph { display: inline-grid; width: 20px; height: 20px; }
+.theme-morph > svg { grid-area: 1 / 1; width: 100%; height: 100%; }
+
+.morph-dark .tt-sun { animation: sun-out 600ms ease forwards; }
+.morph-light .tt-sun { animation: sun-in 600ms ease forwards; }
+.morph-dark .tt-moon { animation: moon-in 600ms ease forwards; }
+.morph-light .tt-moon { animation: moon-out 600ms ease forwards; }
+
+@keyframes sun-out {
+  from { transform: rotate(0deg) scale(1); opacity: 1; }
+  to { transform: rotate(90deg) scale(0.4); opacity: 0; }
+}
+@keyframes sun-in {
+  from { transform: rotate(90deg) scale(0.4); opacity: 0; }
+  to { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes moon-in {
+  from { transform: rotate(-90deg) scale(0.4); opacity: 0; }
+  to { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes moon-out {
+  from { transform: rotate(0deg) scale(1); opacity: 1; }
+  to { transform: rotate(-90deg) scale(0.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { transition: none; }
+  /* Near-zero duration still lands on the end frame, so state stays correct. */
+  .theme-morph > svg { animation-duration: 1ms !important; }
+}
+
+#nav-links a[aria-current="true"]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--fg)}

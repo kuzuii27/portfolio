@@ -10,7 +10,7 @@ import { climbStep, headingInReach, pickPlatform, GRAVITY, type Plat } from '@/l
 const Robot3D = dynamic(() => import('@/components/Robot3D').then((m) => m.Robot3D), { ssr: false, loading: () => <Robot /> });
 
 // The boxes the robot can stand on.
-const PLATFORMS = '.facts, .case, .levels > li, .skill-row, .contacts, #contact form';
+const PLATFORMS = '.facts, .case, .skill-row, .contacts-cta';
 const IDLE: Pose[] = ['wave', 'think', 'thumbs', 'present', 'nap'];
 const FEET = 286 / 300; // where the feet are in the robot's SVG
 const HAND = 0.8; // towel hand x while scrubbing, as a fraction of the robot's width

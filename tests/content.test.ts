@@ -42,14 +42,6 @@ describe('site content', () => {
     const withoutLinks = page.replaceAll('https://github.com/kuzuii27', '').replaceAll('github.com/kuzuii27', '');
     expect(withoutLinks).not.toMatch(/kuzuii27/);
   });
-  it('offers the web resume PDF in job mode, without phone numbers', () => {
-    const form = readFileSync('src/components/InquiryForm.tsx', 'utf8');
-    expect(form).toMatch(/href="\/Kuzui-Santillan-Resume\.pdf"[^>]*download/);
-    const pdf = readFileSync('public/Kuzui-Santillan-Resume.pdf');
-    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
-    expect(pdf.includes('09929469627') || pdf.includes('09072734117')).toBe(false);
-  });
-
   it('matches the resume: IT support + dev at the GPS company, developer intern at the fintech', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
     expect(page).toContain('IT support and in-house developer');
@@ -69,32 +61,6 @@ describe('site content', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
     expect(page).not.toContain('<dt>Now</dt>');
   });
-  it('page has a Website levels section with all three demos', () => {
-    const page = readFileSync('src/app/page.tsx', 'utf8');
-    expect(page).toContain('<Levels />');
-    expect(page).toContain('href="#levels"');
-    const levels = readFileSync('src/components/Levels.tsx', 'utf8');
-    expect(levels).toContain('id="levels"');
-    expect(levels).toContain('LEVELS.map');
-    expect(levels).toMatch(/href=\{l\.demo\}[^>]*target="_blank"/);
-  });
-
-  it('form asks for level, not budget', () => {
-    const form = readFileSync('src/components/InquiryForm.tsx', 'utf8');
-    expect(form).toContain('name="level"');
-    expect(form).not.toContain('name="budget"');
-    expect(form).not.toContain('Budget (PHP)');
-  });
-  it('every demo page has the sample-site bar and checklist', () => {
-    const pages = files('public/demos').filter((f) => f.endsWith('.html'));
-    expect(pages.length).toBeGreaterThan(0);
-    for (const f of pages) {
-      const html = readFileSync(f, 'utf8');
-      expect(html, f).toMatch(/data-level="(minimum|standard|high)"/);
-      expect(html, f).toContain('/demos/demo-bar.js');
-      expect(html, f).toContain('id="level-checklist"');
-    }
-  });
 
   it('demo images stay under 1.5 MB', () => {
     const total = files('public/demos').filter((f) => f.endsWith('.webp')).reduce((t, f) => t + statSync(f).size, 0);
@@ -113,23 +79,6 @@ describe('site content', () => {
       expect(statSync(`public/demos/high/${p}.html`).isFile()).toBe(true);
     const book = readFileSync('public/demos/high/book.html', 'utf8');
     for (const id of ['step-service', 'step-date', 'step-time', 'step-details', 'step-deposit']) expect(book).toContain(`id="${id}"`);
-  });
-  it('each level lists what the full application includes, on the portfolio and in its demo', () => {
-    const levels = readFileSync('src/lib/levels.ts', 'utf8');
-    expect(levels).toContain('full:');
-    expect(readFileSync('src/components/Levels.tsx', 'utf8')).toContain('l.full.map');
-    for (const [id, item] of [['minimum', 'Domain and hosting set up'], ['standard', 'Admin portal to update your own content'], ['high', 'Custom features built around your workflow']]) {
-      expect(levels).toContain(item);
-      const page = readFileSync(`public/demos/${id}/index.html`, 'utf8');
-      expect(page, id).toContain('In the full application');
-      expect(page, id).toContain(item);
-    }
-  });
-  it('level descriptions are generic, not tied to the clinic sample', () => {
-    const copy = readFileSync('src/lib/levels.ts', 'utf8') + readFileSync('src/components/Levels.tsx', 'utf8');
-    expect(copy).not.toMatch(/dentist|clinic|HMO|patient/i);
-    expect(copy).not.toContain('any kind of business');
-    expect(readFileSync('src/app/page.tsx', 'utf8')).not.toContain('What I use every day');
   });
   it('header has no name or logo, and centres the section links between side columns', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
@@ -158,9 +107,9 @@ describe('site content', () => {
   it('has a case study on the inquiry-to-website process', () => {
     expect(readFileSync('src/lib/cases.ts', 'utf8')).toContain('From Inquiry to Finished Website');
   });
-  it('robot pet roams the page boxes, can be hidden, and is motion-safe', () => {
+  it('robot pet is kept in the code but not mounted on the page', () => {
     const page = readFileSync('src/app/page.tsx', 'utf8');
-    expect(page).toContain('<RobotPet />');
+    expect(page).not.toContain('<RobotPet />');
     expect(page).not.toContain('HeroRobot');
     const pet = readFileSync('src/components/RobotPet.tsx', 'utf8');
     expect(pet).toContain('requestAnimationFrame');

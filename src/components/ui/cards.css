@@ -1,0 +1,121 @@
+/* Glass card: glassmorphism applies to .section-card only, never to the nav. */
+.section-card {
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(24px);
+  pointer-events: none;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-card.is-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Trajectory rail */
+.progress-track {
+  position: fixed;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 60vh;
+  z-index: 10;
+}
+
+.progress-track ol {
+  position: relative;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-track ol::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  transform: translateX(-50%);
+}
+
+.progress-track li {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 12px dot, 44px tap target (WCAG 2.5.5 minimum) */
+.progress-dot {
+  position: relative;
+  display: block;
+  width: 12px;
+  height: 12px;
+  overflow: visible;
+  padding: 0;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.progress-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.progress-dot.is-active {
+  background: currentColor;
+  transform: scale(1.4);
+}
+
+.progress-dot:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Planet name tooltip on hover/focus */
+.progress-dot::after {
+  content: attr(data-name);
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 0.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.progress-dot:hover::after,
+.progress-dot:focus-visible::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-card {
+    transform: none;
+    transition: opacity 0.3s ease;
+  }
+  .progress-dot,
+  .progress-dot::after {
+    transition: none;
+  }
+}

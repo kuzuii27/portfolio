@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 :root{
-  --sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji",sans-serif;
+  --sans: var(--font-text),system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji",sans-serif;
+  --display: var(--font-display),var(--sans);
   --mono: ui-monospace,SFMono-Regular,"Roboto Mono",Menlo,Monaco,Consolas,"Liberation Mono","DejaVu Sans Mono","Courier New",monospace;
   --nav-h:64px;
   --bg:#ffffff; --bg-2:#fafafa; --surface:#ffffff;
@@ -103,6 +104,7 @@ section{scroll-margin-top:var(--nav-h)}
 /* sections */
 .sec{padding:56px 0;box-shadow:0 -1px 0 var(--line-2)}
 .sec-head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-bottom:24px}
+.sec h2,.hero h1{font-family:var(--display)}
 .sec h2{font-size:40px;line-height:1.2;font-weight:600;letter-spacing:-2.4px;text-wrap:balance}
 .sec-head p{color:var(--fg-2);max-width:52ch}
 
@@ -150,7 +152,9 @@ section{scroll-margin-top:var(--nav-h)}
 
 /* about */
 .about{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr);gap:40px}
-.about p{font-size:18px;line-height:1.56;color:var(--fg-2);max-width:90ch}
+.about>div{position:relative;isolation:isolate}
+.about>div::before{content:"";position:absolute;inset:-48px -64px;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--bg) 62%,transparent) 0,color-mix(in srgb,var(--bg) 38%,transparent) 45%,transparent 72%)}
+.about p{font-size:19px;line-height:1.6;font-weight:480;color:var(--fg-2);max-width:62ch}
 .about p+p{margin-top:16px}
 .about strong{color:var(--fg);font-weight:500}
 
@@ -231,14 +235,6 @@ dialog::backdrop{background:var(--backdrop);backdrop-filter:blur(2px)}
 .case-doc{padding:28px 32px 32px;display:grid;gap:24px}
 .case-doc h2{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-1.28px;margin-top:10px}
 .case-head{display:flex;align-items:flex-end;gap:16px}.case-head>div:first-child{flex:1;min-width:0}
-.case-bot{position:relative;flex:none;width:80px;animation:cb-pop .35s cubic-bezier(.3,1.4,.5,1)}
-.case-bot-body{cursor:pointer}
-.case-bot[data-hop=a] .case-bot-body{animation:cb-hop-a .7s ease-out}.case-bot[data-hop=b] .case-bot-body{animation:cb-hop-b .7s ease-out}
-@keyframes cb-pop{from{opacity:0;scale:.4}}
-@keyframes cb-hop-a{40%{translate:0 -28px}}@keyframes cb-hop-b{40%{translate:0 -28px}}
-.case-bot .robot-say{position:absolute;bottom:100%;right:0;width:max-content;max-width:min(220px,60vw);font-size:13px;border-radius:14px 14px 4px 14px}
-@media (max-width:768px){.case-bot{width:64px}}
-@media (prefers-reduced-motion:reduce){.case-bot,.case-bot *{animation:none!important}}
 .case-doc h3{font:500 12px/1 var(--mono);text-transform:uppercase;color:var(--fg-3);margin-bottom:10px}
 .case-doc p,.case-doc .list li{color:var(--fg-2);font-size:16px}
 .case-doc ul.list{display:grid;gap:8px}
@@ -456,3 +452,99 @@ input[type=color]{width:56px;height:44px;padding:4px;cursor:pointer}
 .pet-hide:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 @media (max-width:768px){.pet{width:64px}}
 @media (prefers-reduced-motion:reduce){.pet,.pet *,.pet-shine,.pet-gleam,.pet-scold{animation:none!important;transition:none!important}}
+
+/* galaxy: fixed starfield + planet behind the page; the robot flies onto the planet while scrolling */
+.space{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;display:block}
+.space-bot{position:fixed;left:0;top:0;width:150px;z-index:5;pointer-events:none;will-change:transform}
+.space-bot .robot{width:100%}
+@media (max-width:768px){.space-bot{width:96px}}
+.robot-ship canvas{display:block;width:100%!important;height:auto!important}
+.contacts-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){.space-bot{transition:none}}
+
+/* navbar auto-hide (NavAutoHide) */
+.nav{transition:transform .25s ease}
+.nav.nav-hidden{transform:translateY(-100%)}
+@media (prefers-reduced-motion:reduce){.nav{transition:none}}
+
+/* galaxy theme: static backdrop + glass section cards (CSS only, no WebGL) */
+body{background:radial-gradient(1200px 600px at 80% -10%,rgba(99,102,241,.14),transparent 60%),radial-gradient(900px 500px at 0% 110%,rgba(56,189,248,.10),transparent 60%),var(--bg)}
+[data-theme=dark] body{background:radial-gradient(1400px 700px at 85% -15%,rgba(99,102,241,.38),transparent 60%),radial-gradient(1000px 600px at 5% 105%,rgba(56,189,248,.24),transparent 60%),radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gradient(1px 1px at 70% 60%,#fff6,transparent),radial-gradient(1px 1px at 40% 85%,#fff5,transparent),var(--bg)}
+.sec .wrap>*{position:relative}
+.sec .wrap .sec-head,.sec .wrap .grid,.sec .wrap .skills,.sec .wrap .about{background:transparent}
+.sec .grid>.case,.sec .skills>.skill-row{background:color-mix(in srgb,var(--surface) 72%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--line)}
+.sec .skills>.skill-row{border-radius:16px;padding:20px}
+
+.skip{position:fixed;top:8px;left:8px;z-index:200;padding:12px 16px;min-height:44px;display:inline-flex;align-items:center;border-radius:6px;background:var(--btn-bg);color:var(--btn-fg);font:500 14px/1 var(--sans);transform:translateY(-200%)}
+.skip:focus-visible{transform:none}
+.contacts-cta .btn svg{width:18px;height:18px}
+
+/* no-WebGL fallback: a flat CSS planet on the right so the page is not an empty sky */
+.space-fallback{position:fixed;z-index:-1;pointer-events:none;right:-14vmin;top:22vh;width:56vmin;height:56vmin;border-radius:50%;background:radial-gradient(circle at 32% 30%,#7fb4e8 0,#2f6aa8 38%,#0c2548 72%,#050b18 100%);box-shadow:0 0 0 1px rgba(255,255,255,.06),0 0 60px rgba(80,140,220,.18)}
+[data-theme=light] .space-fallback{opacity:.55}
+@media (max-width:768px){.space-fallback{right:-22vmin;top:58vh;width:60vmin;height:60vmin}}
+
+/* fixed decorative layers must never create a horizontal scrollbar */
+html,body{overflow-x:clip}
+
+/* facts: glass panel */
+.facts{background:color-mix(in srgb,var(--surface) 52%,transparent);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent)}
+
+/* robot is tappable; sits above the crack */
+.space-bot{pointer-events:auto;cursor:pointer;z-index:7}
+
+/* CV preview */
+.cv-dlg{width:min(900px,calc(100% - 32px));height:calc(100% - 32px);padding:0;overflow:hidden}
+.cv-dlg[open]{display:flex;flex-direction:column}
+.cv-bar{display:flex;gap:8px;justify-content:flex-end;padding:10px 12px;box-shadow:0 1px 0 var(--line)}
+.cv-dlg iframe{flex:1;width:100%;border:0;background:#fff}
+.msg-link{color:inherit;text-decoration:underline;text-underline-offset:3px}
+
+/* selection being wiped: red patch the robot clears left to right (document coordinates) */
+.bot-mark{position:absolute;z-index:6;pointer-events:none;border-radius:4px;background:rgba(239,68,68,.35);box-shadow:0 0 0 2px rgba(239,68,68,.25)}
+
+/* meteor + cracked screen */
+.meteor{position:fixed;z-index:8;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe8c2,#e8863a 60%,#7a3a14);pointer-events:none;animation:meteor-fly .85s cubic-bezier(.55,0,.85,.5) forwards}
+.meteor::after{content:"";position:absolute;left:50%;bottom:50%;width:6px;height:220px;border-radius:3px;transform-origin:50% 100%;transform:translateX(-50%) rotate(35deg);background:linear-gradient(to top,rgba(255,206,140,.95),rgba(255,140,60,.35) 45%,transparent)}
+@keyframes meteor-fly{from{translate:380px -540px;scale:.6}to{translate:0 0;scale:1.4}}
+.meteor-flash{position:fixed;inset:0;z-index:9;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.55),rgba(255,255,255,.12));animation:meteor-flash .35s ease-out forwards}
+@keyframes meteor-flash{to{opacity:0}}
+.crack{position:fixed;z-index:6;pointer-events:none;animation:crack-in .3s ease-out;filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}
+@keyframes crack-in{from{clip-path:circle(0)}to{clip-path:circle(230px)}}
+.crack path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.crack-dark{stroke:rgba(0,0,0,.75);stroke-width:3.2}
+.crack-lite{stroke:rgba(255,255,255,.85);stroke-width:1.1}
+@media (prefers-reduced-motion:reduce){.meteor,.meteor-flash,.crack{animation:none}}
+
+/* meteor embedded in the screen: wedged, tugged out, thrown back into space; then the hole is welded */
+.meteor-stuck{position:fixed;z-index:8;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:46% 54% 50% 50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412);box-shadow:0 0 18px 4px rgba(255,140,60,.55),inset -4px -5px 8px rgba(0,0,0,.55)}
+.meteor-stuck[data-stage=pull]{animation:rock-tug .32s ease-in-out infinite}
+.meteor-stuck[data-stage=throw]{animation:rock-throw .7s cubic-bezier(.3,0,.9,.6) forwards}
+@keyframes rock-tug{0%,100%{translate:0 0;rotate:-6deg}50%{translate:-3px -3px;rotate:7deg;scale:1.12}}
+@keyframes rock-throw{0%{translate:0 0;scale:1.15;rotate:0}100%{translate:520px -460px;scale:.12;rotate:540deg;opacity:0}}
+.crack-hole{fill:rgba(0,0,0,.85);stroke:rgba(255,255,255,.6);stroke-width:2}
+.crack[data-stage=weld]{animation:crack-heal 2.4s ease-in forwards}
+@keyframes crack-heal{0%{opacity:1;filter:drop-shadow(0 0 6px #ffb347)}60%{opacity:.7;filter:drop-shadow(0 0 10px #fff3c0)}100%{opacity:0}}
+.crack[data-stage=weld] .crack-hole{animation:hole-seal 2.4s ease-in forwards;transform-origin:0 0}
+@keyframes hole-seal{to{transform:scale(0)}}
+.weld{position:fixed;z-index:8;width:0;height:0;pointer-events:none}
+.weld::before{content:"";position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#fff,#ffd27a 40%,rgba(255,150,60,0) 72%);animation:weld-glow .22s ease-in-out infinite alternate}
+@keyframes weld-glow{from{opacity:.65;scale:.8}to{opacity:1;scale:1.25}}
+.weld i{position:absolute;left:0;top:0;width:3px;height:3px;border-radius:50%;background:#ffe9a8;box-shadow:0 0 6px 1px #ffb347;rotate:var(--a);animation:spark .55s ease-out infinite}
+@keyframes spark{0%{translate:0 0;opacity:1}100%{translate:46px 0;opacity:0}}
+@media (prefers-reduced-motion:reduce){.meteor-stuck,.crack[data-stage=weld],.weld::before,.weld i{animation:none}}
+
+/* contact form: email me directly from the page */
+.msg-form{display:grid;gap:14px;margin-top:28px;max-width:640px;padding:20px;border-radius:12px;background:color-mix(in srgb,var(--surface) 60%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--line)}
+.msg-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.msg-form label{display:grid;gap:6px;font:500 12px/1.4 var(--mono);text-transform:uppercase;color:var(--fg-3)}
+.msg-form label span{text-transform:none;opacity:.8}
+.msg-form input,.msg-form textarea{font:400 15px/1.5 inherit;text-transform:none;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+.msg-form textarea{resize:vertical;min-height:110px}
+.msg-form input:focus-visible,.msg-form textarea:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.msg-form [aria-invalid=true]{border-color:#ef4444}
+.msg-form em{font:400 13px/1.4 inherit;text-transform:none;color:#ef4444}
+.msg-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.msg-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.msg-foot p{font-size:14px;color:var(--fg-2)}.msg-foot p[data-kind=error]{color:#ef4444}.msg-foot p[data-kind=sent]{color:#16a34a}
+@media (max-width:640px){.msg-row{grid-template-columns:1fr}}
