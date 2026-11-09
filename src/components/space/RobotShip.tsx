@@ -138,7 +138,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, scrub: busy } = input.current;
       cur.tilt += (tiltTo - cur.tilt) * k;
       cur.thrust += (thrustTo - cur.thrust) * k;
-      cur.yaw += ((busy ? 0 : face * 0.6) - cur.yaw) * Math.min(1, dt * 4); // 3/4 view toward travel; turns to face the screen while working
+      cur.yaw += ((busy ? Math.PI : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth, silky rotation without sudden jerks
       cur.wave += ((here && !reduced ? 1 : 0) - cur.wave) * Math.min(1, dt * 5);
       cur.scrub += ((busy && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
       const box = el.getBoundingClientRect();
@@ -151,7 +151,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       ship.rotation.z = -cur.tilt - face * cur.thrust * 0.2; // bank by tilt, lean forward while moving
       head.rotation.y = (reduced ? 0 : Math.sin(t * 1.3) * 0.5 * (1 - cur.thrust)) + cur.lx * 0.3;
       const raised = Math.max(cur.wave, cur.scrub);
-      arms[1].rotation.z = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3); // raised: waves when arrived, scrubs fast when working
+      arms[1].rotation.z = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3);
+      if (busy) { arms[1].rotation.x = -Math.PI / 2.4; arms[0].rotation.x = -Math.PI / 2.4; } else { arms[1].rotation.x = 0; arms[0].rotation.x = 0; } // raised: waves when arrived, scrubs fast when working
       arms[0].rotation.z = -0.15 - cur.thrust * 0.3;
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;

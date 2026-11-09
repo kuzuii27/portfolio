@@ -11,6 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const emit = (p: number) =>
   window.dispatchEvent(new CustomEvent('journey:progress', { detail: { p: clampProgress(p) } }));
+      
 
 /** Smooth scroll (Lenis) plus one master timeline scrubbed 0..1 over the page. Renders nothing. */
 export function ScrollJourney() {

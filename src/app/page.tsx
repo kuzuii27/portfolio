@@ -6,7 +6,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Cursor } from '@/components/ui/Cursor';
 import { NavAutoHide } from '@/components/ui/NavAutoHide';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { AudioToggle } from '@/components/ui/AudioToggle';
 import { ProgressTrack } from '@/components/ui/ProgressTrack';
 import { Motion } from '@/components/ui/Motion';
 import { CvPreview } from '@/components/CvPreview';
@@ -15,12 +14,15 @@ import { Meteor } from '@/components/space/Meteor';
 import { CONTACT_NUMBER, viberUrl } from '@/lib/contact';
 import '@/components/ui/ui.css';
 
+const ViberMark = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-4 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="M9 8.5c0 3.5 2.5 5.5 5.5 5.5M12 7.5c1.7.3 2.7 1.3 3 3" /></svg>
+);
+
 const GITHUB = 'https://github.com/kuzuii27';
 const Arrow = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
 );
 
-const EMAIL = 'mailto:kuzuii04@gmail.com';
 const VIBER = viberUrl(CONTACT_NUMBER);
 const GhMark = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 19c-4 1.3-4-2-6-2.5M15 21v-3.2a2.8 2.8 0 0 0-.8-2.2c2.7-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.3 1.3a11.3 11.3 0 0 0-6 0C6.7 2.900 5.7 3.2 5.7 3.2a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.3 9.600c0 4.6 2.800 5.7 5.5 6A2.800 2.800 0 0 0 9 17.800V21" /></svg>
@@ -49,7 +51,7 @@ export default function Home() {
           </nav>
           <div className="nav-actions">
             <ThemeToggle />
-            <AudioToggle />
+            
             <a className="btn btn-primary" data-magnetic href="#contact">Contact me</a>
             <MenuButton />
           </div>
@@ -128,9 +130,10 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head" data-reveal="up">
               <h2 id="contact-title">Let&apos;s talk</h2>
-              <p><a className="msg-link" href={VIBER ?? EMAIL}>Send me a message.</a></p>
+              
             </div>
             <div className="contacts-cta">
+              {VIBER && <a className="btn btn-primary" data-magnetic href={VIBER} rel="noopener" aria-label="Chat on Viber"><ViberMark />Viber</a>}
               <a className="btn btn-ghost" href={GITHUB} target="_blank" rel="me noopener"><GhMark />GitHub</a>
             </div>
             <MessageForm />
