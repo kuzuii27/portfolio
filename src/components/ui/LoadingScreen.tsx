@@ -1,63 +1,42 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Robot } from '@/components/Robot';
 
-const LINES = ['BOOT SEQUENCE INITIATED', 'CHECKING SERVOS', 'CALIBRATING SENSORS', 'LOADING ASSETS', 'SYSTEMS ONLINE'];
-const TIMEOUT = 2500;
+// Boot sequence: the robot flies in superman-style from deep space, bumps the page, waves hi.
+const TRAVEL_MS = 1900; // flying toward the camera
+const BUMP_MS = 420;    // impact + shake
+const HI_MS = 900;      // waves and says hi
+const TOTAL_MS = TRAVEL_MS + BUMP_MS + HI_MS;
 
-// Hides on window load or after TIMEOUT, whichever comes first.
+type Phase = 'travel' | 'bump' | 'hi' | 'gone';
+
+/** Full-screen boot animation. Runs on a fixed timer so the arrival is always seen, load or not. */
 export function LoadingScreen() {
-  const [pct, setPct] = useState(0);
-  const [show, setShow] = useState(true);
+  const [phase, setPhase] = useState<Phase>('travel');
 
   useEffect(() => {
-    const start = performance.now();
-    let done = false;
-    let raf = 0;
+    // Reduced motion: skip the flight, just get out of the way.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { setPhase('gone'); return; }
 
-    const finish = () => {
-      if (done) return;
-      done = true;
-      cancelAnimationFrame(raf);
-      setPct(100);
-      setShow(false);
-    };
-    const tick = () => {
-      if (done) return;
-      setPct(Math.min(95, Math.round(((performance.now() - start) / TIMEOUT) * 100)));
-      raf = requestAnimationFrame(tick);
-    };
-
-    raf = requestAnimationFrame(tick);
-    const timer = setTimeout(finish, TIMEOUT);
-    if (document.readyState === 'complete') finish();
-    else window.addEventListener('load', finish, { once: true });
-
-    return () => {
-      done = true;
-      cancelAnimationFrame(raf);
-      clearTimeout(timer);
-      window.removeEventListener('load', finish);
-    };
+    const timers = [
+      setTimeout(() => setPhase('bump'), TRAVEL_MS),
+      setTimeout(() => setPhase('hi'), TRAVEL_MS + BUMP_MS),
+      setTimeout(() => setPhase('gone'), TOTAL_MS),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, []);
 
-  if (!show) return null;
+  if (phase === 'gone') return null;
 
-  const filled = Math.round(pct / 5);
-  const line = LINES[Math.min(LINES.length - 1, Math.floor((pct / 100) * LINES.length))];
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000, background: '#000', color: '#7dd3fc',
-        fontFamily: 'monospace', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        alignItems: 'flex-start', padding: '0 10vw', gap: 8,
-      }}
-    >
-      <div>{line}</div>
-      <div>[{'#'.repeat(filled)}{'.'.repeat(20 - filled)}] {pct}%</div>
+    <div className="boot" data-phase={phase} role="status" aria-live="polite" aria-busy={phase !== 'hi'}>
+      <div className="boot-stars" aria-hidden="true" />
+      <div className="boot-bot" aria-hidden="true">
+        <Robot pose={phase === 'hi' ? 'wave' : 'fly'} />
+      </div>
+      {phase === 'hi' && <p className="boot-hi">Hi! 👋</p>}
+      <span className="sr">{phase === 'hi' ? 'Ready' : 'Loading'}</span>
     </div>
   );
 }

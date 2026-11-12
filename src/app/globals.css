@@ -528,3 +528,24 @@ html,body{overflow-x:clip}
 .msg-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .msg-foot p{font-size:14px;color:var(--fg-2)}.msg-foot p[data-kind=error]{color:#ef4444}.msg-foot p[data-kind=sent]{color:#16a34a}
 @media (max-width:640px){.msg-row{grid-template-columns:1fr}}
+
+/* boot sequence: robot flies in superman-style, bumps the page, waves hi */
+.boot{position:fixed;inset:0;z-index:10000;background:radial-gradient(1200px 800px at 50% 40%,#0b1228 0%,#030308 70%);overflow:hidden;display:grid;place-items:center}
+.boot-stars{position:absolute;inset:-10%;background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff 0,transparent 100%),radial-gradient(1px 1px at 80% 10%,#fff 0,transparent 100%),radial-gradient(1.5px 1.5px at 30% 70%,#fff 0,transparent 100%),radial-gradient(1px 1px at 60% 85%,#fff 0,transparent 100%),radial-gradient(1px 1px at 90% 60%,#fff 0,transparent 100%),radial-gradient(1.5px 1.5px at 45% 35%,#fff 0,transparent 100%),radial-gradient(1px 1px at 15% 90%,#fff 0,transparent 100%);opacity:.8}
+.boot[data-phase=travel] .boot-stars{animation:boot-star-rush 1.9s linear forwards}
+@keyframes boot-star-rush{from{transform:scale(1)}to{transform:scale(2.6)}}
+.boot-bot{width:min(220px,46vw);transform:scale(.1) rotate(-90deg);filter:drop-shadow(0 0 40px rgba(125,211,252,.35))}
+.boot[data-phase=travel] .boot-bot{animation:boot-travel 1.9s cubic-bezier(.3,.1,.25,1) forwards}
+@keyframes boot-travel{0%{transform:scale(.08) rotate(-90deg)}70%{transform:scale(.85) rotate(-82deg)}100%{transform:scale(1.08) rotate(-78deg)}}
+.boot[data-phase=bump] .boot-bot{animation:boot-bump .42s ease-out forwards}
+@keyframes boot-bump{0%{transform:scale(1.08) rotate(-78deg)}35%{transform:scale(.92) rotate(-60deg) translateX(-6px)}70%{transform:scale(1.04) rotate(-4deg) translateX(4px)}100%{transform:scale(1) rotate(0deg) translateX(0)}}
+.boot[data-phase=bump]{animation:boot-flash .42s ease-out}
+@keyframes boot-flash{0%{background:#fff}40%{background:radial-gradient(1200px 800px at 50% 40%,#0b1228 0%,#030308 70%)}}
+.boot[data-phase=hi] .boot-bot{transform:scale(1)}
+.boot-hi{position:absolute;bottom:18%;color:#e6f6ff;font:600 20px/1 var(--display,sans-serif);letter-spacing:.02em;animation:boot-hi-in .35s ease-out}
+@keyframes boot-hi-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* superman pose: one arm forward, legs trail straight back */
+[data-pose=fly] .robot-arm-l{transform:rotate(172deg)}
+[data-pose=fly] .robot-arm-r{transform:rotate(8deg)}
+[data-pose=fly] .robot-leg-l,[data-pose=fly] .robot-leg-r{transform:rotate(14deg)}
+@media (prefers-reduced-motion:reduce){.boot *{animation:none!important}}
