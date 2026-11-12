@@ -83,7 +83,15 @@ export function Meteor() {
           {stage !== 'weld' && <span className="meteor-stuck" data-stage={stage} style={{ left: rock.x, top: rock.y }} />}
           {stage === 'weld' && (
             <span className="weld" style={{ left: rock.x, top: rock.y }}>
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <i key={i} style={{ '--a': `${i * 45 + 12}deg`, animationDelay: `${(i % 4) * 0.12}s` } as React.CSSProperties} />)}
+              {Array.from({ length: 20 }, (_, i) => {
+                // bias sparks downward-right like the reference image: angles -20° to 200°
+                const angle = -20 + (i / 20) * 220 + (i % 3) * 7;
+                const delay = (i % 5) * 0.11;
+                return <i key={i} style={{ '--a': `${angle}deg`, animationDelay: `${delay}s`, '--len': `${38 + (i % 4) * 8}px` } as React.CSSProperties} />;
+              })}
+              <b className="weld-smoke" style={{ '--d': '0s' } as React.CSSProperties} />
+              <b className="weld-smoke" style={{ '--d': '.4s' } as React.CSSProperties} />
+              <b className="weld-smoke" style={{ '--d': '.8s' } as React.CSSProperties} />
             </span>
           )}
         </>

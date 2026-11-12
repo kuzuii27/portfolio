@@ -32,8 +32,9 @@ export function SpaceScene() {
   const pLive = useRef(0); // scroll progress 0..1, written by journey:progress
   const [webgl, setWebgl] = useState(true);
   const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, scrub: false });
-  const [mark, setMark] = useState<{ x: number; y: number; w: number; h: number } | null>(null); // red patch over the selection being wiped (document coords)
+  const [mark, setMark] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const markEl = useRef<HTMLSpanElement>(null);
+  const mopEl = useRef<HTMLSpanElement>(null);
   const tapped = useRef(0); // bumped by a tap on the robot
   const th = useSyncExternalStore(watchTheme, theme, () => 'light' as const);
 
@@ -81,7 +82,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'work' | 'pull' | 'throw' | 'weld'; x: number; y: number; w: number; h: number; prog: number; t0: number }, init: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'work' | 'pull' | 'throw' | 'weld'; x: number; y: number; w: number; h: number; prog: number; t0: number }, init: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -145,8 +146,22 @@ export function SpaceScene() {
       const side = st.left ? Math.max(bw * 0.6, fr.w < 768 ? 0 : st.anchor.l - bw * 0.75) : fr.w < 768 ? fr.w - bw * 0.6 : Math.min(fr.w - bw * 0.7, st.anchor.x + bw * 0.75);
       const tNow = performance.now() / 1000;
       const lp = isReduced ? { x: side, y: st.anchor.y } : patrol(tNow, { x: side, y: st.anchor.y }, Math.min(fr.w * 0.03, 40), Math.min(fr.h * 0.06, 50), 0);
-      const wantX = st.left && st.leftSpot ? st.leftSpot.x + (lp.x - side) : lp.x;
-      const wantY = st.left && st.leftSpot ? st.leftSpot.y + (lp.y - st.anchor.y) : Math.min(fr.h * 0.85, Math.max(fr.h * 0.15, lp.y));
+      let wantX = st.left && st.leftSpot ? st.leftSpot.x + (lp.x - side) : lp.x;
+      let wantY = st.left && st.leftSpot ? st.leftSpot.y + (lp.y - st.anchor.y) : Math.min(fr.h * 0.85, Math.max(fr.h * 0.15, lp.y));
+
+      // mobile free roam: pick a random free spot every 5–8 s and drift slowly toward it
+      if (fr.w < 768 && !st.job) {
+        const roamEvery = 5000 + (Math.sin(st.mobAt) * 0.5 + 0.5) * 3000; // 5–8 s, varies per spot
+        if (!st.mob || now - st.mobAt > roamEvery) {
+          const rx = bw * 0.6 + Math.random() * (fr.w - bw * 1.2);
+          const ry = fr.h * 0.15 + Math.random() * (fr.h * 0.70);
+          const candidate = freeSpot({ x: rx, y: ry }, bw, bh, st.texts, fr.w, fr.h);
+          if (candidate.free) { st.mob = candidate; st.mobAt = now; }
+        }
+        if (st.mob) { wantX = st.mob.x; wantY = st.mob.y; }
+      } else if (fr.w >= 768) {
+        st.mob = null; // clear roam target when switching to desktop
+      }
       let scale = 1;
       let spot: { x: number; y: number; free: boolean };
       const job = st.job;
@@ -156,7 +171,12 @@ export function SpaceScene() {
         const sx = doc ? job.x - scrollX : job.x;
         const sy = doc ? job.y - scrollY : job.y;
         const fixSide = job.x < fr.w * 0.6 ? 1 : -1;
-        const home = doc ? { x: sx + job.w / 2, y: sy + job.h / 2 } : { x: job.x + fixSide * bw * 0.55, y: job.y }; // wiping stands on the middle of the text, covering it
+        // during weld the hand goes straight to the hole centre; other phases hover beside it
+        const home = doc
+          ? { x: sx + job.w / 2, y: sy + job.h / 2 }
+          : job.phase === 'weld'
+            ? { x: job.x, y: job.y }
+            : { x: job.x + fixSide * bw * 0.55, y: job.y };
         spot = { x: home.x, y: home.y, free: true };
         if (job.phase === 'go') {
           if (Math.hypot(st.bx - home.x, st.by - home.y) < 16 || now - job.t0 > 3500) {
@@ -166,11 +186,19 @@ export function SpaceScene() {
           }
         } else if (doc) {
           job.prog = Math.min(1, (now - job.t0) / Math.min(3500, Math.max(1200, job.w * 9)));
-          // scrub back and forth over the middle, wider as the patch clears
+          // scrub back and forth; mop x tracks the robot
           spot = { x: home.x + Math.sin((now - job.t0) / 90) * Math.min(job.w / 2, 70) * (0.4 + 0.6 * job.prog), y: home.y, free: true };
-          // the patch clears from the middle outward
-          if (markEl.current) markEl.current.style.clipPath = `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${50 - job.prog * 50}% 0, ${50 + job.prog * 50}% 0, ${50 + job.prog * 50}% 100%, ${50 - job.prog * 50}% 100%, ${50 - job.prog * 50}% 0)`;
-          if (job.prog >= 1) { st.job = null; setMark(null); }
+          // reveal clear text under the mop: clip the smear mark from left to right
+          if (markEl.current) markEl.current.style.clipPath = `inset(0 ${((1 - job.prog) * 100).toFixed(1)}% 0 0)`;
+          // keep the mop handle at the robot's hand tip (bottom-centre of the robot box)
+          if (mopEl.current) {
+            const mx = st.bx - scrollX;
+            const my = st.by - scrollY + (botSize().h * 0.42);
+            mopEl.current.style.left = `${mx.toFixed(1)}px`;
+            mopEl.current.style.top = `${my.toFixed(1)}px`;
+            mopEl.current.style.display = 'block';
+          }
+          if (job.prog >= 1) { st.job = null; setMark(null); if (mopEl.current) mopEl.current.style.display = 'none'; }
         } else {
           // repair: tug the meteor out, throw it back into space, then weld the hole shut
           const el = now - job.t0;
@@ -187,8 +215,9 @@ export function SpaceScene() {
       if (!st.init) { st.bx = spot.x; st.by = spot.y; st.init = true; }
       st.bs = damp(st.bs, scale, 6, dt);
       const px = st.bx;
-      st.bx = damp(st.bx, spot.x, isReduced ? 60 : 3.2, dt);
-      st.by = damp(st.by, spot.y, isReduced ? 60 : 3.2, dt);
+      const dampRate = fr.w < 768 && !st.job ? 0.9 : 3.2; // mobile free-roam: drift slowly
+      st.bx = damp(st.bx, spot.x, isReduced ? 60 : dampRate, dt);
+      st.by = damp(st.by, spot.y, isReduced ? 60 : dampRate, dt);
       if (!st.job && Math.abs(st.bx - px) > 0.2) st.facing = st.bx > px ? 1 : -1;
       el.style.transform = `translate3d(${(st.bx - bw / 2).toFixed(1)}px, ${(st.by - bh / 2).toFixed(1)}px, 0) scale(${st.bs.toFixed(3)})`;
       el.style.opacity = spot.free ? '1' : '0.35'; // last resort only: no free spot anywhere
@@ -250,6 +279,8 @@ export function SpaceScene() {
         if (r.width < 4 || r.bottom < 0 || r.top > vh()) return;
         const m = { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height };
         setMark(m);
+        if (markEl.current) markEl.current.style.clipPath = '';
+        if (mopEl.current) mopEl.current.style.display = 'none';
         st.job = { kind: 'wipe', phase: 'go', ...m, prog: 0, t0: performance.now() };
       }, 1000);
     };
@@ -275,6 +306,7 @@ export function SpaceScene() {
       <Starfield theme={th} count={900} />
       <ShootingStars theme={th} />
       {mark && <span className="bot-mark" ref={markEl} aria-hidden="true" style={{ left: mark.x, top: mark.y, width: mark.w, height: mark.h }} />}
+      <span className="bot-mop" ref={mopEl} aria-hidden="true" style={{ display: 'none' }} />
       <div className="space-bot" ref={botEl} aria-hidden="true" onClick={() => { tapped.current++; }}>
         <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} scrub={pose.scrub} />
       </div>
