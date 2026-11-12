@@ -11,15 +11,10 @@ export const metadata: Metadata = {
     'Full-stack .NET developer based in the Philippines. I build small, practical apps that solve real problems.',
 };
 
-// Runs before paint so the saved or system theme never flashes.
-const themeInit = `try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}`;
-
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${display.variable} ${text.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
-      </head>
+    <html lang="en" data-theme="dark" className={`${display.variable} ${text.variable}`}>
+      <head />
       <body>
         <a className="skip" href="#top">Skip to main content</a>
         {children}</body>

@@ -19,5 +19,5 @@ export const THEME_FADE_MS = 700; // crossfade band required by the brief: 600 t
 
 export const SCENE_COLORS = {
   dark: { planet: 0x4f46e5, ring: 0xa5b4fc, star: 0xffffff },
-  light: { planet: 0xf59e0b, ring: 0xfde68a, star: 0xfef3c7 },
+  light: { planet: 0x4f46e5, ring: 0xa5b4fc, star: 0xffffff }, // always dark; kept for type compat
 } as const;

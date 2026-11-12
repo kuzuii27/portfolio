@@ -30,12 +30,12 @@ export function MessageForm() {
   return (
     <form className="msg-form" onSubmit={submit} noValidate aria-label="Send me an email">
       <div className="msg-row">
-        <label>Your name <span>(optional)</span>
-          <input name="name" autoComplete="name" maxLength={MSG_LIMITS.name} aria-invalid={!!errors.name} />
-        </label>
-        <label>Your email
+        <label>Email
           <input name="email" type="email" autoComplete="email" required maxLength={MSG_LIMITS.email} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'msg-email-err' : undefined} />
           {errors.email && <em id="msg-email-err">{errors.email}</em>}
+        </label>
+        <label>Name <span>(optional)</span>
+          <input name="name" autoComplete="name" maxLength={MSG_LIMITS.name} aria-invalid={!!errors.name} />
         </label>
       </div>
       <label>Message

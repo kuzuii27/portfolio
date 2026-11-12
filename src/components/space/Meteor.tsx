@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const EVERY_MS = 120_000; // a meteor about every 2 minutes
+// First five meteors at 3 s, 10 s, 30 s, 20 s, 60 s after page load; then every 60 s.
+const SCHEDULE_S = [3, 10, 30, 20, 60];
+const REPEAT_S = 60;
 const GIVE_UP_MS = 30_000; // if the robot never shows up to fix it (no WebGL), the crack clears itself
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -33,21 +35,29 @@ export function Meteor() {
 
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let idx = 0;
+    let tid = 0;
+
     const launch = () => {
       if (busy.current || document.hidden) return;
       busy.current = true;
       setFly({ x: innerWidth * rnd(0.2, 0.8), y: innerHeight * rnd(0.28, 0.72) });
     };
-    const fixed = () => { clearTimeout(giveUp.current); setRock(null); setStage('stuck'); busy.current = false; };
+    const schedule = () => {
+      const delaySec = idx < SCHEDULE_S.length ? SCHEDULE_S[idx] : REPEAT_S;
+      idx++;
+      tid = window.setTimeout(launch, delaySec * 1000);
+    };
+    const fixed = () => { clearTimeout(giveUp.current); setRock(null); setStage('stuck'); busy.current = false; schedule(); };
     const at = (s: 'pull' | 'throw' | 'weld') => () => setStage(s);
     const [onPull, onThrow, onWeld] = [at('pull'), at('throw'), at('weld')];
     window.addEventListener('meteor:pull', onPull);
     window.addEventListener('meteor:throw', onThrow);
     window.addEventListener('meteor:weld', onWeld);
-    const id = setInterval(launch, EVERY_MS);
     window.addEventListener('meteor:launch', launch); // also how tests trigger one
     window.addEventListener('meteor:fixed', fixed);
-    return () => { clearInterval(id); clearTimeout(giveUp.current); window.removeEventListener('meteor:pull', onPull); window.removeEventListener('meteor:throw', onThrow); window.removeEventListener('meteor:weld', onWeld); window.removeEventListener('meteor:launch', launch); window.removeEventListener('meteor:fixed', fixed); };
+    schedule(); // kick off the first one
+    return () => { clearTimeout(tid); clearTimeout(giveUp.current); window.removeEventListener('meteor:pull', onPull); window.removeEventListener('meteor:throw', onThrow); window.removeEventListener('meteor:weld', onWeld); window.removeEventListener('meteor:launch', launch); window.removeEventListener('meteor:fixed', fixed); };
   }, []);
 
   const land = () => {

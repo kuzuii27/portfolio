@@ -2,7 +2,6 @@ import { CaseStudies } from '@/components/CaseStudies';
 import { SpaceScene } from '@/components/space/SpaceScene';
 import { ScrollJourney } from '@/components/space/ScrollJourney';
 import { MenuButton } from '@/components/ThemeToggle';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Cursor } from '@/components/ui/Cursor';
 import { NavAutoHide } from '@/components/ui/NavAutoHide';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -50,7 +49,6 @@ export default function Home() {
             <a href="#work">Work</a><a href="#skills">Skills</a><a href="#about">About</a><a href="#contact">Contact</a>
           </nav>
           <div className="nav-actions">
-            <ThemeToggle />
             
             <a className="btn btn-primary" data-magnetic href="#contact">Contact me</a>
             <MenuButton />
@@ -130,15 +128,16 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head" data-reveal="up">
               <h2 id="contact-title">Let&apos;s talk</h2>
-              
+              <p className="contact-hint">Drop a message — it goes straight to my inbox and I&apos;ll reply by email.</p>
             </div>
             <div className="contacts-cta">
-              {VIBER && <a className="btn btn-primary" data-magnetic href={VIBER} rel="noopener" aria-label="Chat on Viber"><ViberMark />Viber</a>}
+              {VIBER && <a className="btn btn-ghost" data-magnetic href={VIBER} rel="noopener" aria-label="Chat on Viber"><ViberMark />Viber</a>}
               <a className="btn btn-ghost" href={GITHUB} target="_blank" rel="me noopener"><GhMark />GitHub</a>
             </div>
             <MessageForm />
           </div>
         </section>
+
       </main>
 
       <footer>
