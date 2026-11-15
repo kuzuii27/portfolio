@@ -21,10 +21,10 @@
 @keyframes rl-blink{0%,100%{opacity:.45}50%{opacity:1}}
 
 /* flames grow over the loading time (a time proxy: there is no real progress signal here) and flicker */
-.rl-grow{transform-box:fill-box;transform-origin:50% 0;animation:rl-grow 1.9s ease-out forwards;transform:scale(.8)}
+.rl-grow{transform-box:view-box;animation:rl-grow 1.9s ease-out forwards;transform:scale(.8)}
 @keyframes rl-grow{to{transform:scale(1.15)}}
-.rl-flame{transform-box:fill-box;transform-origin:50% 0;animation:rl-flicker .18s ease-in-out infinite alternate}
-.rl-flame-r{animation-delay:-.09s}
+.rl-flame{transform-box:view-box;animation:rl-flicker .18s ease-in-out infinite alternate}
+.rl-flame-r{animation-delay:0s}
 @keyframes rl-flicker{from{transform:scaleY(.82);opacity:.85}to{transform:scaleY(1.12);opacity:1}}
 
 /* launch: a dip (anticipation), then up toward the vanishing point, shrinking; flames boost; trail; overlay fades late */
