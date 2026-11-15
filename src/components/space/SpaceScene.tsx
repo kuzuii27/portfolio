@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { PLANETS } from '@/lib/sceneConfig';
 import { planetPose, dimBehindCopy } from '@/lib/planetPath';
@@ -10,7 +10,7 @@ import { createPlanet, SUN_DIR, type PlanetHandle } from '@/components/space/Pla
 import { createSkyObject } from '@/components/space/SkyObjects';
 import { Starfield } from '@/components/space/Starfield';
 import { ShootingStars } from '@/components/space/ShootingStars';
-import { RobotShip, MOP_HEAD } from '@/components/space/RobotShip';
+import { RobotShip, MOP_HEAD, type Action } from '@/components/space/RobotShip';
 
 const N = PLANETS.length;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -34,6 +34,23 @@ const syncH = () => {
 };
 const rh = () => stableH || window.innerHeight;
 const damp = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
+type Pt = { x: number; y: number };
+type Rep = { grip: Pt; tip: Pt; torch: number; stage: 'hold' | 'thrown' | 'weld' | 'seal'; rel?: Pt; dir?: number };
+
+/** Repair overlay: the held rock, the thrown rock, the torch-tip arc + sparks, and the seam weld bead. Page px. */
+function RepairOverlay({ r }: { r: Rep }) {
+  return (
+    <>
+      {r.stage === 'hold' && <span className="rock-held" style={{ left: r.grip.x, top: r.grip.y }} aria-hidden="true" />}
+      {r.stage === 'thrown' && r.rel && <span className="rock-thrown" style={{ left: r.rel.x, top: r.rel.y, '--dx': `${(r.dir ?? 1) * 280}px`, '--dy': '-340px' } as React.CSSProperties} aria-hidden="true" />}
+      {r.torch > 0.05 && (
+        <span className="weld-tip" style={{ left: r.tip.x, top: r.tip.y, opacity: r.torch }} aria-hidden="true">
+          <i /><i /><i /><i /><i /><i />
+        </span>
+      )}
+    </>
+  );
+}
 const botSize = () => (vw() < 768 ? { w: 96, h: 132 } : { w: 150, h: 206 });
 
 /** Fixed sky behind the page: one WebGL canvas (planets, sun/moon), a star layer, and the robot in a free lane. */
@@ -42,8 +59,14 @@ export function SpaceScene() {
   const botEl = useRef<HTMLDivElement>(null);
   const pLive = useRef(0); // scroll progress 0..1, written by journey:progress
   const [webgl, setWebgl] = useState(true);
-  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, scrub: false, mop: false });
+  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, action: 'idle' as Action });
   const [mark, setMark] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  // repair overlay, in page px: the held rock follows the grip point; the torch tip drives the weld sparks and seam progress
+  const [rep, setRep] = useState<Rep | null>(null);
+  const repRef = useRef<typeof rep>(null);
+  const onHandRef = useRef<(g: Pt, t: Pt, o: number) => void>(() => {});
+  // stable: RobotShip calls this every frame; it forwards to whatever the scene effect registered (no ref read during render)
+  const handHook = useCallback((g: Pt, t: Pt, o: number) => onHandRef.current(g, t, o), []);
   const markEl = useRef<HTMLSpanElement>(null);
   const tapped = useRef(0); // bumped by a tap on the robot
   const th = useSyncExternalStore(watchTheme, theme, () => 'light' as const);
@@ -93,7 +116,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'work' | 'pull' | 'throw' | 'weld'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number }, init: false, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -196,9 +219,8 @@ export function SpaceScene() {
         spot = { x: home.x, y: home.y, free: true };
         if (job.phase === 'go') {
           if (Math.hypot(st.bx - home.x, st.by - home.y) < 16 || now - job.t0 > 3500) {
-            job.phase = doc ? 'work' : 'pull'; job.t0 = now;
+            job.phase = doc ? 'work' : 'grab'; job.t0 = now;
             if (doc) window.getSelection()?.removeAllRanges(); // the red patch stands in for the selection
-            else window.dispatchEvent(new Event('meteor:pull'));
           }
         } else if (doc) {
           job.prog = Math.min(1, (now - job.t0) / Math.min(3500, Math.max(1200, job.w * 9)));
@@ -208,11 +230,13 @@ export function SpaceScene() {
           if (markEl.current) markEl.current.style.clipPath = `inset(0 ${((1 - job.prog) * 100).toFixed(1)}% 0 0)`;
           if (job.prog >= 1) { st.job = null; setMark(null); }
         } else {
-          // repair: tug the meteor out, throw it back into space, then weld the hole shut
+          // repair: grab (0.5s) -> pull (1.4s) -> throw (0.8s) -> weld (2.5s) -> seal (0.4s) -> fixed
           const el = now - job.t0;
-          if (job.phase === 'pull' && el > 1600) { job.phase = 'throw'; job.t0 = now; window.dispatchEvent(new Event('meteor:throw')); }
-          else if (job.phase === 'throw' && el > 700) { job.phase = 'weld'; job.t0 = now; window.dispatchEvent(new Event('meteor:weld')); }
-          else if (job.phase === 'weld' && el > 2400) { st.job = null; window.dispatchEvent(new Event('meteor:fixed')); }
+          if (job.phase === 'grab' && el > 500) { job.phase = 'pull'; job.t0 = now; window.dispatchEvent(new Event('meteor:pull')); }
+          else if (job.phase === 'pull' && el > 1400) { job.phase = 'throw'; job.t0 = now; window.dispatchEvent(new Event('meteor:throw')); }
+          else if (job.phase === 'throw' && el > 800) { job.phase = 'weld'; job.t0 = now; window.dispatchEvent(new Event('meteor:weld')); }
+          else if (job.phase === 'weld' && el > 2500) { job.phase = 'seal'; job.t0 = now; window.dispatchEvent(new Event('meteor:seal')); }
+          else if (job.phase === 'seal' && el > 400) { st.job = null; repRef.current = null; setRep(null); window.dispatchEvent(new Event('meteor:fixed')); }
         }
         if (!doc) st.facing = fixSide === 1 ? -1 : 1; // face the crack
       } else {
@@ -268,9 +292,10 @@ export function SpaceScene() {
         poseAt = now;
         const arrived = Math.abs(st.f - Math.round(st.f)) < 0.06 && st.fly < 0.25 && !st.job;
         const thrust = 0.4 + Math.min(0.6, st.fly * 1.2 + st.speed * 1.5);
-        const scrub = !!st.job && st.job.phase !== 'go' && st.job.phase !== 'throw';
-        const mop = !!st.job && st.job.kind === 'wipe' && st.job.phase === 'work';
-        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.scrub === scrub && o.mop === mop && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, scrub, mop }));
+        const action: Action = !st.job ? 'idle' : st.job.kind === 'wipe' ? (st.job.phase === 'work' ? 'wipe' : 'idle') : st.job.phase === 'grab' || st.job.phase === 'pull' || st.job.phase === 'throw' || st.job.phase === 'weld' ? st.job.phase : 'idle';
+        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.action === action && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, action }));
+        if (repRef.current) setRep(repRef.current);
+
       }
       if (!isReduced) raf = requestAnimationFrame(frame);
     };
@@ -282,10 +307,24 @@ export function SpaceScene() {
     window.addEventListener('resize', onResize);
 
     // meteor crack: the robot flies over and repairs it (Meteor.tsx removes the crack on `meteor:fixed`)
+    // the robot's hand/torch positions in page px, read every frame by RobotShip and thrown into React state at the throttled pose rate
+    const onHand = (grip: Pt, tipPt: Pt, torchOn: number) => {
+      const job = st.job;
+      if (!job || job.kind !== 'fix') return;
+      const box = botEl.current?.getBoundingClientRect();
+      if (!box) return;
+      const g = { x: box.left + grip.x * (box.width / (botSize().w)), y: box.top + grip.y * (box.width / (botSize().w)) };
+      const tp = { x: box.left + tipPt.x * (box.width / (botSize().w)), y: box.top + tipPt.y * (box.width / (botSize().w)) };
+      // the rock leaves the hand at the throw: remember the release point and fly it away from the robot (side of the screen opposite the robot)
+      if (job.phase === 'throw' && !job.rel) { job.rel = g; job.dir = job.x < window.innerWidth / 2 ? 1 : -1; }
+      const stage: Rep['stage'] = job.phase === 'grab' || job.phase === 'pull' ? 'hold' : job.phase === 'throw' ? 'thrown' : job.phase === 'weld' ? 'weld' : 'seal';
+      repRef.current = { grip: g, tip: tp, torch: torchOn, stage, rel: job.rel, dir: job.dir };
+    };
+    onHandRef.current = onHand;
     const onHit = (e: Event) => {
-      const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail;
+      const { x, y, pts } = (e as CustomEvent<{ x: number; y: number; pts: { x: number; y: number }[] }>).detail;
       setMark(null);
-      st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now() };
+      st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now(), pts, ms: 0 };
     };
     window.addEventListener('meteor:hit', onHit);
 
@@ -311,7 +350,7 @@ export function SpaceScene() {
         const m = { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height };
         setMark(m);
         if (markEl.current) markEl.current.style.clipPath = '';
-        st.job = { kind: 'wipe', phase: 'go', ...m, lh, prog: 0, t0: performance.now() };
+        st.job = { kind: 'wipe', phase: 'go', ...m, lh, prog: 0, t0: performance.now(), pts: [], ms: 0 };
       }, 1000);
     };
     document.addEventListener('selectionchange', onSel);
@@ -337,8 +376,9 @@ export function SpaceScene() {
       <ShootingStars theme={th} />
       {mark && <span className="bot-mark" ref={markEl} aria-hidden="true" style={{ left: mark.x, top: mark.y, width: mark.w, height: mark.h }} />}
       <div className="space-bot" ref={botEl} aria-hidden="true" onClick={() => { tapped.current++; }}>
-        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} scrub={pose.scrub} mop={pose.mop} />
+        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} action={pose.action} onHand={handHook} />
       </div>
+      {rep && <RepairOverlay r={rep} />}
     </>
   );
 }

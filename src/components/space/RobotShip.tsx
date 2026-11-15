@@ -4,7 +4,18 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-type Props = { tilt: number; thrust: number; facing?: 1 | -1; arrived?: boolean; scrub?: boolean; mop?: boolean }; // tilt: radians, + = bank right; thrust: 0..1 flame length
+/** 'wipe' = text-wipe job (was the `scrub` boolean). grab/pull/throw/weld = meteor repair. */
+export type Action = 'idle' | 'wipe' | 'grab' | 'pull' | 'throw' | 'weld';
+/** tilt: radians, + = bank right; thrust: 0..1 flame length.
+ *  onHand(x, y, torchOn): CSS px of the grip point and the torch tip inside the robot box, every frame (parent places DOM rock/sparks there). */
+type Props = {
+  tilt: number;
+  thrust: number;
+  facing?: 1 | -1;
+  arrived?: boolean;
+  action?: Action;
+  onHand?: (grip: { x: number; y: number }, tip: { x: number; y: number }, torchOn: number) => void;
+};
 
 const MODEL = '/models/robot.glb';
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
@@ -12,12 +23,12 @@ const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
 
 /** The flying main character: procedural robot + thruster flame. Uses /models/robot.glb when it exists. Position comes from the parent. */
-export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = false, mop: mopping = false }: Props) {
+export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 'idle', onHand }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const input = useRef({ tilt, thrust, facing, arrived, scrub, mopping });
+  const input = useRef({ tilt, thrust, facing, arrived, action, onHand });
   useEffect(() => {
-    input.current = { tilt, thrust, facing, arrived, scrub, mopping };
-  }, [tilt, thrust, facing, arrived, scrub, mopping]);
+    input.current = { tilt, thrust, facing, arrived, action, onHand };
+  }, [tilt, thrust, facing, arrived, action, onHand]);
 
   useEffect(() => {
     const el = host.current;
@@ -48,6 +59,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
     const joint = new THREE.MeshStandardMaterial({ color: 0x9aa4af, roughness: 0.45, metalness: 0.3 });
     const visor = new THREE.MeshStandardMaterial({ color: 0x0b1118, roughness: 0.15, metalness: 0.4 });
     const glow = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const tipMat = new THREE.MeshBasicMaterial({ color: 0xe0f2ff });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, depthWrite: false });
     const add = (parent: THREE.Object3D, g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0) => {
       const o = new THREE.Mesh(g, m);
@@ -75,11 +87,21 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
     add(head, new THREE.SphereGeometry(0.06, 12, 8), glow, 0, 0.45, 0);
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x9be7ff });
     const eyes = [-1, 1].map((s) => add(head, new THREE.SphereGeometry(0.055, 12, 8), eyeMat, s * 0.13, 0, 0.47)); // slide inside the visor toward the cursor
+    // welding visor: a dark half-dome on a hinge at the forehead; flipped up (out of the way) by default
+    const weldVisor = new THREE.Group();
+    weldVisor.position.set(0, 0.2, 0.3);
+    head.add(weldVisor);
+    add(weldVisor, new THREE.SphereGeometry(0.44, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), visor);
+
     const armGeo = new THREE.CapsuleGeometry(0.09, 0.35, 4, 12);
     const socketGeo = new THREE.SphereGeometry(0.13, 20, 14);
     const handGeo = new THREE.SphereGeometry(0.11, 20, 14);
     const mopGeo = [new THREE.CylinderGeometry(0.025, 0.025, 1.15, 10), new THREE.BoxGeometry(0.56, 0.12, 0.2), new THREE.BoxGeometry(0.5, 0.09, 0.18)];
+    const torchGeo = [new THREE.CylinderGeometry(0.06, 0.06, 0.34, 10), new THREE.CylinderGeometry(0.03, 0.06, 0.2, 10), new THREE.SphereGeometry(0.04, 10, 8)];
     let mop!: THREE.Group;
+    let torch!: THREE.Group;
+    let grip!: THREE.Object3D; // empty anchor at the palm: where the rock is held
+    let tip!: THREE.Object3D; // empty anchor at the torch nozzle end
     const arms = [-1, 1].map((side) => {
       add(proc, socketGeo, joint, side * 0.41, 0.2, 0); // joint ball seated in the torso wall (half width 0.4)
       const a = new THREE.Group(); // shoulder pivot = socket centre
@@ -88,12 +110,23 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       add(a, armGeo, joint, 0, -0.27, 0);
       const hand = add(a, handGeo, shell, 0, -0.56, 0); // on the arm axis, overlaps the capsule end
       if (side === 1) {
+        grip = new THREE.Object3D();
+        grip.position.set(0, -0.56, 0);
+        a.add(grip);
         mop = new THREE.Group(); // child of the hand: the handle passes through the palm
         hand.add(mop);
         add(mop, mopGeo[0], joint, 0, -0.375, 0);
         add(mop, mopGeo[1], shell, 0, -1.0, 0);
         add(mop, mopGeo[2], glow, 0, -1.08, 0); // cloth tip
         mop.visible = false;
+
+        torch = new THREE.Group(); // welding torch in the same hand, same mount as the mop
+        hand.add(torch);
+        add(torch, torchGeo[0], joint, 0, -0.18, 0); // handle
+        add(torch, torchGeo[1], shell, 0, -0.45, 0); // tapered nozzle
+        tip = add(torch, torchGeo[2], tipMat, 0, -0.58, 0);
+        torch.visible = false;
+        torch.scale.setScalar(0.001);
       }
       return a;
     });
@@ -142,22 +175,33 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
     const look = { x: innerWidth / 2, y: innerHeight / 2 };
     const onMove = (e: PointerEvent) => { look.x = e.clientX; look.y = e.clientY; };
     addEventListener('pointermove', onMove, { passive: true });
-    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, lx: 0, ly: 0 };
+    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, torch: 0, visor: 0, armX: 0, armZ: 0.15, lean: 0, lx: 0, ly: 0 };
+    const gripV = new THREE.Vector3();
+    const tipV = new THREE.Vector3();
     let raf = 0;
     let last = performance.now();
     let t = 0;
+    let phaseT = 0; // seconds in the current action (drives the tug and throw cycle)
+    let prevAct: Action = 'idle';
     const tick = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); // clamp >= 0: a negative first dt once blew up damp()
       last = now;
       if (!reduced) t += dt;
       const k = Math.min(1, dt * 6);
-      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, scrub: busy, mopping: mopOn } = input.current;
+      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, action: act, onHand: report } = input.current;
+      if (act !== prevAct) { phaseT = 0; prevAct = act; }
+      phaseT += dt;
+      const repair = act === 'grab' || act === 'pull' || act === 'throw' || act === 'weld';
+      const mopOn = act === 'wipe' && !reduced;
+      const weldOn = act === 'weld' && !reduced;
       cur.tilt += (tiltTo - cur.tilt) * k;
       cur.thrust += (thrustTo - cur.thrust) * k;
-      cur.yaw += ((busy ? Math.PI : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth, silky rotation without sudden jerks
+      cur.yaw += ((repair || act === 'wipe' ? Math.PI : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth rotation, no jerks
       cur.wave += ((here && !reduced ? 1 : 0) - cur.wave) * Math.min(1, dt * 5);
-      cur.scrub += ((busy && !mopOn && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
-      cur.mop += ((mopOn && !reduced ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);
+      cur.scrub += (((act === 'wipe' || repair) && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
+      cur.mop += ((mopOn ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);
+      cur.torch += ((weldOn ? 1 : 0) - cur.torch) * Math.min(1, dt * 6); // torch scales in and out
+      cur.visor += ((weldOn ? 1 : 0) - cur.visor) * Math.min(1, dt * 5);
       const box = el.getBoundingClientRect();
       const clamp1 = (v: number) => Math.max(-1, Math.min(1, v));
       cur.lx += (clamp1((look.x - (box.left + box.width / 2)) / 300) - cur.lx) * k;
@@ -167,13 +211,34 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       ship.rotation.y = cur.yaw;
       ship.rotation.z = -cur.tilt - face * cur.thrust * 0.2; // bank by tilt, lean forward while moving
       head.rotation.y = (reduced ? 0 : Math.sin(t * 1.3) * 0.5 * (1 - cur.thrust)) + cur.lx * 0.3;
+      weldVisor.rotation.x = -Math.PI / 2 + cur.visor * (Math.PI / 2); // hinge at the forehead: flips down while welding
       const raised = Math.max(cur.wave, cur.scrub);
-      arms[1].rotation.z = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3); // waves when arrived, works fast on a repair; stays down while mopping
-      if (busy && !mopOn) { arms[1].rotation.x = -Math.PI / 2.4; arms[0].rotation.x = -Math.PI / 2.4; } else { arms[1].rotation.x = 0; arms[0].rotation.x = 0; }
+
+      // right arm: idle wave, wiping scrub, or the repair cycle (grab reach, pull tug, throw wind-up + release, weld trace)
+      let tgtX = 0, tgtZ = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3), lean = 0;
+      if (act === 'grab') { tgtX = -Math.PI / 2.2; tgtZ = 0.45; }
+      else if (act === 'pull') {
+        const tug = Math.max(0, Math.sin(phaseT * Math.PI * 2.2)); // ~2-3 tugs over 1.4 s
+        tgtX = -Math.PI / 2.2 + tug * 0.35; tgtZ = 0.45; lean = -tug * 0.12;
+      } else if (act === 'throw') {
+        const windUp = Math.min(1, phaseT / 0.35);          // arm pulls back with the rock
+        const release = Math.min(1, Math.max(0, (phaseT - 0.35) / 0.2)); // then swings through
+        tgtX = -Math.PI / 2.2 - release * 1.0; tgtZ = 0.45 - windUp * 0.9 + release * 0.9; lean = windUp * 0.1 - release * 0.15;
+      } else if (act === 'weld') { tgtX = -Math.PI / 2.4; tgtZ = 0.3; }
+      cur.armX += (tgtX - cur.armX) * Math.min(1, dt * 9);
+      cur.armZ += (tgtZ - cur.armZ) * Math.min(1, dt * 9);
+      cur.lean += (lean - cur.lean) * Math.min(1, dt * 6);
+      arms[1].rotation.x = cur.armX;
+      arms[1].rotation.z = cur.armZ;
+      arms[0].rotation.x = repair || act === 'wipe' ? -Math.PI / 2.4 : 0;
+      arms[0].rotation.z = -0.15 - cur.thrust * 0.3;
+      body.rotation.z = cur.lean;
       mop.rotation.z = -arms[1].rotation.z; // handle stays vertical whatever the arm does
       mop.scale.setScalar(Math.max(0.001, cur.mop));
       mop.visible = cur.mop > 0.01;
-      arms[0].rotation.z = -0.15 - cur.thrust * 0.3;
+      torch.rotation.z = -arms[1].rotation.z * 0.3; // tilts less than the mop: reads better angled
+      torch.scale.setScalar(Math.max(0.001, cur.torch));
+      torch.visible = cur.torch > 0.01;
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;
       for (const f of flames) {
@@ -181,6 +246,13 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       }
 
       renderer.render(scene, camera);
+      if (report) {
+        // project the grip and torch tip into CSS px inside the robot box, so the parent can place DOM rock/sparks exactly there
+        const w = el.clientWidth;
+        const h = (w * (VIEW.t - VIEW.b)) / (2 * VIEW.w);
+        const toCss = (v: THREE.Vector3) => ({ x: (v.x * 0.5 + 0.5) * w, y: (1 - (v.y * 0.5 + 0.5)) * h });
+        report(toCss(grip.getWorldPosition(gripV).project(camera)), toCss(tip.getWorldPosition(tipV).project(camera)), cur.torch);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -198,6 +270,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       socketGeo.dispose();
       handGeo.dispose();
       mopGeo.forEach((g) => g.dispose());
+      torchGeo.forEach((g) => g.dispose());
       renderer.dispose();
       renderer.domElement.remove();
     };

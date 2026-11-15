@@ -496,36 +496,33 @@ html,body{overflow-x:clip}
 .crack-lite{stroke:rgba(255,255,255,.85);stroke-width:1.1}
 @media (prefers-reduced-motion:reduce){.meteor,.meteor-flash,.crack{animation:none}}
 
-/* meteor embedded in the screen: wedged, tugged out, thrown back into space; then the hole is welded */
-.meteor-stuck{position:fixed;z-index:8;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:46% 54% 50% 50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412);box-shadow:0 0 18px 4px rgba(255,140,60,.55),inset -4px -5px 8px rgba(0,0,0,.55)}
-.meteor-stuck[data-stage=pull]{animation:rock-tug .32s ease-in-out infinite}
-.meteor-stuck[data-stage=throw]{animation:rock-throw .7s cubic-bezier(.3,0,.9,.6) forwards}
-@keyframes rock-tug{0%,100%{translate:0 0;rotate:-6deg}50%{translate:-3px -3px;rotate:7deg;scale:1.12}}
-@keyframes rock-throw{0%{translate:0 0;scale:1.15;rotate:0}100%{translate:520px -460px;scale:.12;rotate:540deg;opacity:0}}
+/* wedged rock in the crack hole, before the robot grabs it */
+.rock-stuck{position:fixed;z-index:8;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:46% 54% 50% 50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412);box-shadow:0 0 18px 4px rgba(255,140,60,.55),inset -4px -5px 8px rgba(0,0,0,.55)}
+/* rock held in the robot's hand: positioned from the hand anchor every frame, above the robot (z 8 > 7) */
+.rock-held{position:fixed;z-index:8;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:46% 54% 50% 50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412);box-shadow:0 0 14px 3px rgba(255,140,60,.45),inset -4px -5px 8px rgba(0,0,0,.55)}
 .crack-hole{fill:rgba(0,0,0,.85);stroke:rgba(255,255,255,.6);stroke-width:2}
-.crack[data-stage=weld]{animation:crack-heal 2.4s ease-in forwards}
-@keyframes crack-heal{0%{opacity:1;filter:drop-shadow(0 0 6px #ffb347)}60%{opacity:.7;filter:drop-shadow(0 0 10px #fff3c0)}100%{opacity:0}}
-.crack[data-stage=weld] .crack-hole{animation:hole-seal 2.4s ease-in forwards;transform-origin:0 0}
-@keyframes hole-seal{to{transform:scale(0)}}
-.weld{position:fixed;z-index:8;width:0;height:0;pointer-events:none}
-/* arc core: white-hot with blue tinge, flickers irregularly */
-.weld::before{content:"";position:absolute;left:-18px;top:-18px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff 15%,#93c5fd 38%,rgba(255,180,60,.7) 58%,transparent 72%);animation:weld-arc .14s ease-in-out infinite alternate}
+/* torch tip: a small arc glow plus a cluster of gravity sparks that spray away from the robot */
+.weld-tip{position:fixed;z-index:8;width:0;height:0;pointer-events:none}
+.weld-tip::before{content:"";position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,#fff 18%,#93c5fd 45%,transparent 72%);animation:weld-arc .14s ease-in-out infinite alternate}
+.weld-tip i{position:absolute;left:0;top:0;width:3px;height:3px;border-radius:50%;background:#ffe9a8;box-shadow:0 0 5px 1px #ffb347;animation:tip-spark .6s ease-in infinite}
+.weld-tip i:nth-child(1){--vx:-10px;--vy:14px;animation-delay:0s}
+.weld-tip i:nth-child(2){--vx:6px;--vy:18px;animation-delay:.1s}
+.weld-tip i:nth-child(3){--vx:-16px;--vy:8px;animation-delay:.2s}
+.weld-tip i:nth-child(4){--vx:12px;--vy:10px;animation-delay:.05s}
+.weld-tip i:nth-child(5){--vx:-4px;--vy:22px;animation-delay:.15s}
+.weld-tip i:nth-child(6){--vx:2px;--vy:12px;animation-delay:.25s}
+@keyframes tip-spark{0%{translate:0 0;opacity:1}100%{translate:var(--vx) var(--vy);opacity:0}}
 @keyframes weld-arc{0%{opacity:.7;scale:.85}33%{opacity:1;scale:1.3}66%{opacity:.85;scale:1.05}100%{opacity:1;scale:1.2}}
-/* outer warm halo */
-.weld::after{content:"";position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,80,.55) 0%,rgba(255,120,30,.18) 55%,transparent 72%);animation:weld-halo .4s ease-in-out infinite alternate}
-@keyframes weld-halo{from{scale:.9;opacity:.7}to{scale:1.15;opacity:1}}
-/* sparks — fly out at angle --a for distance --len */
-.weld i{position:absolute;left:0;top:0;width:3px;height:3px;border-radius:50%;background:#ffe9a8;box-shadow:0 0 5px 1px #ffb347;rotate:var(--a);animation:spark var(--dur,.5s) ease-out infinite}
-@keyframes spark{0%{translate:0 0;opacity:1;scale:1.4}60%{opacity:.7}100%{translate:var(--len,46px) 0;opacity:0;scale:.4}}
-/* smoke puffs drift upward from the arc */
-.weld-smoke{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;background:rgba(180,180,200,.18);filter:blur(4px);animation:weld-smoke-rise 1.2s ease-out infinite;animation-delay:var(--d,0s)}
-@keyframes weld-smoke-rise{0%{translate:0 0;opacity:.55;scale:.6}100%{translate:-4px -38px;opacity:0;scale:1.8}}
-/* crack seam glows white-hot from hole outward then heals */
-.crack[data-stage=weld]{animation:crack-heal 2.4s ease-in forwards}
-@keyframes crack-heal{0%{opacity:1;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 18px #ffb347)}40%{filter:drop-shadow(0 0 12px #fff3c0) drop-shadow(0 0 6px #ffb347)}100%{opacity:0;filter:none}}
-.crack[data-stage=weld] .crack-lite{animation:seam-glow 2.4s ease-in forwards}
-@keyframes seam-glow{0%{stroke:#ffffff;stroke-width:3;opacity:1}60%{stroke:#ffe9a8;stroke-width:1.5;opacity:.7}100%{stroke:rgba(255,255,255,.85);stroke-width:1.1;opacity:0}}
-@media (prefers-reduced-motion:reduce){.meteor-stuck,.crack[data-stage=weld],.weld::before,.weld::after,.weld i,.weld-smoke{animation:none}}
+/* rock thrown away: arcs up and off-screen, shrinking and spinning, with a short trail (--dx/--dy set from the scene) */
+.rock-thrown{position:fixed;z-index:8;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:46% 54% 50% 50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412);animation:rock-arc .8s cubic-bezier(.3,.1,.6,1) forwards}
+@keyframes rock-arc{0%{translate:0 0;scale:1;rotate:0deg;opacity:1}100%{translate:var(--dx) var(--dy);scale:.25;rotate:540deg;opacity:0}}
+/* the seam fills as the torch passes: the bead draws in along the crack over the weld stage, then cools to grey and fades at seal */
+.crack-bead{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke:#ffb347;stroke-width:2.6;filter:drop-shadow(0 0 4px #ff9a3a);stroke-dasharray:1000;stroke-dashoffset:1000;opacity:0}
+.crack[data-stage=weld] .crack-bead{animation:bead-fill 2.5s linear forwards}
+.crack[data-stage=seal] .crack-bead{stroke-dashoffset:0;animation:bead-cool .4s ease-out forwards}
+@keyframes bead-fill{0%{stroke-dashoffset:1000;opacity:1}100%{stroke-dashoffset:0;opacity:1}}
+@keyframes bead-cool{0%{stroke:#ffb347;opacity:1}100%{stroke:#8b93a1;opacity:.35}}
+@media (prefers-reduced-motion:reduce){.rock-stuck,.rock-held,.rock-thrown,.weld-tip::before,.weld-tip i{animation:none}}
 
 /* contact form: email me directly from the page */
 .msg-form{display:grid;gap:14px;margin-top:28px;max-width:640px;padding:20px;border-radius:12px;background:color-mix(in srgb,var(--surface) 60%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--line)}
