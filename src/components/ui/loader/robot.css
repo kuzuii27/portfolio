@@ -41,7 +41,7 @@
 
 /* reduced motion: a static robot, no flicker, no streaks, a plain fade */
 @media (prefers-reduced-motion:reduce){
-  .rl-root{animation:ld-fade-out .25s ease-out forwards}
+  .rl-root{animation:ld-fade-out .25s ease-out forwards,ld-fallback-hide 0s 4s forwards}
   .rl-root *{animation:none!important}
   .rl-grow{transform:scale(1)}
 }

@@ -1,7 +1,7 @@
 /* Shared loader base (both variants). Neutral ld- names; variant styles live in robot.css / ship.css. */
 
 /* no-JS fallback: hide the overlay after 4s if React never runs and removes it */
-@keyframes ld-fallback-hide{to{opacity:0;visibility:hidden}}
+@keyframes ld-fallback-hide{to{opacity:0;visibility:hidden;pointer-events:none}}
 @keyframes ld-fade-out{to{opacity:0}}
 
 .ld-word{position:relative;margin:0;color:#e8ecf2;font:600 13px/1 var(--display,sans-serif);letter-spacing:.32em;opacity:.8}
