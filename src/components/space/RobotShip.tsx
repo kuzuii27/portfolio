@@ -23,6 +23,8 @@ const MODEL = '/models/robot.glb';
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
 /** Where the cloth lands while mopping (robot turned away), as a fraction of the robot box from its centre. Derived from the arm/mop geometry below. */
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
+/** Wipe geometry, as fractions of the robot box height (box = VIEW units). The raised hand reaches HAND_UP above the robot's centre; the body top (head) is HEAD_TOP above it. Used by SpaceScene to put the robot just below the text. */
+export const WIPE = { handUp: 0.41, headTop: 0.5 };
 
 /** The flying main character: procedural robot + thruster flame. Uses /models/robot.glb when it exists. Position comes from the parent. */
 export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 'idle', entering = false, onHand }: Props) {
@@ -62,6 +64,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     const visor = new THREE.MeshStandardMaterial({ color: 0x0b1118, roughness: 0.15, metalness: 0.4 });
     const glow = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
     const tipMat = new THREE.MeshBasicMaterial({ color: 0xe0f2ff });
+    const rubber = new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.8, metalness: 0 });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, depthWrite: false });
     const add = (parent: THREE.Object3D, g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0) => {
       const o = new THREE.Mesh(g, m);
@@ -99,8 +102,10 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     const socketGeo = new THREE.SphereGeometry(0.13, 20, 14);
     const handGeo = new THREE.SphereGeometry(0.11, 20, 14);
     const mopGeo = [new THREE.CylinderGeometry(0.025, 0.025, 1.15, 10), new THREE.BoxGeometry(0.56, 0.12, 0.2), new THREE.BoxGeometry(0.5, 0.09, 0.18)];
+    const squeeGeo = [new THREE.CylinderGeometry(0.03, 0.03, 0.5, 10), new THREE.BoxGeometry(0.42, 0.06, 0.1), new THREE.BoxGeometry(0.4, 0.04, 0.14)];
     const torchGeo = [new THREE.CylinderGeometry(0.06, 0.06, 0.34, 10), new THREE.CylinderGeometry(0.03, 0.06, 0.2, 10), new THREE.SphereGeometry(0.04, 10, 8)];
     let mop!: THREE.Group;
+    let squeegee!: THREE.Group;
     let torch!: THREE.Group;
     let grip!: THREE.Object3D; // empty anchor at the palm: where the rock is held
     let tip!: THREE.Object3D; // empty anchor at the torch nozzle end
@@ -129,6 +134,15 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
         tip = add(torch, torchGeo[2], tipMat, 0, -0.58, 0);
         torch.visible = false;
         torch.scale.setScalar(0.001);
+
+        // squeegee for the window-cleaning wipe: grey handle, T-head bar, dark rubber blade. Scaled in only while wiping.
+        squeegee = new THREE.Group();
+        hand.add(squeegee);
+        add(squeegee, squeeGeo[0], joint, 0, -0.3, 0); // handle
+        add(squeegee, squeeGeo[1], shell, 0, -0.52, 0); // T head
+        add(squeegee, squeeGeo[2], rubber, 0, -0.6, 0); // blade, flat against the glass
+        squeegee.visible = false;
+        squeegee.scale.setScalar(0.001);
       }
       return a;
     });
@@ -177,7 +191,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     const look = { x: innerWidth / 2, y: innerHeight / 2 };
     const onMove = (e: PointerEvent) => { look.x = e.clientX; look.y = e.clientY; };
     addEventListener('pointermove', onMove, { passive: true });
-    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, torch: 0, visor: 0, armX: 0, armZ: 0.15, lean: 0, lx: 0, ly: 0 };
+    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, torch: 0, squee: 0, visor: 0, armX: 0, armZ: 0.15, lean: 0, lx: 0, ly: 0 };
     const gripV = new THREE.Vector3();
     const tipV = new THREE.Vector3();
     let raf = 0;
@@ -204,6 +218,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       cur.scrub += (((act === 'wipe' || repair) && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
       cur.mop += ((mopOn ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);
       cur.torch += ((weldOn ? 1 : 0) - cur.torch) * Math.min(1, dt * 6); // torch scales in and out
+      cur.squee += ((act === 'wipe' && !reduced ? 1 : 0) - cur.squee) * Math.min(1, dt * 7); // squeegee scales in while the window-clean runs
       cur.visor += ((weldOn ? 1 : 0) - cur.visor) * Math.min(1, dt * 5);
       const box = el.getBoundingClientRect();
       const clamp1 = (v: number) => Math.max(-1, Math.min(1, v));
@@ -242,6 +257,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       torch.rotation.z = -arms[1].rotation.z * 0.3; // tilts less than the mop: reads better angled
       torch.scale.setScalar(Math.max(0.001, cur.torch));
       torch.visible = cur.torch > 0.01;
+      squeegee.scale.setScalar(Math.max(0.001, cur.squee));
+      squeegee.visible = cur.squee > 0.01;
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;
       for (const f of flames) {
@@ -274,6 +291,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       handGeo.dispose();
       mopGeo.forEach((g) => g.dispose());
       torchGeo.forEach((g) => g.dispose());
+      squeeGeo.forEach((g) => g.dispose());
+      rubber.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };

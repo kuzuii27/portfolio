@@ -10,7 +10,7 @@ import { createPlanet, SUN_DIR, type PlanetHandle } from '@/components/space/Pla
 import { createSkyObject } from '@/components/space/SkyObjects';
 import { Starfield } from '@/components/space/Starfield';
 import { ShootingStars } from '@/components/space/ShootingStars';
-import { RobotShip, MOP_HEAD, type Action } from '@/components/space/RobotShip';
+import { RobotShip, MOP_HEAD, WIPE, type Action } from '@/components/space/RobotShip';
 
 const N = PLANETS.length;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -116,7 +116,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; bottom?: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -209,10 +209,26 @@ export function SpaceScene() {
         if (doc && (sy + job.h < 0 || sy > window.innerHeight)) { st.job = null; setMark(null); return; } // scrolled out of view: end cleanly
         const fixSide = job.x < fr.w * 0.6 ? 1 : -1;
         // wipe: park the robot so the mop head (MOP_HEAD, robot-box fractions) sits on the text line; fix: hover beside the crack
-        const headX = sx + job.w * job.prog;
-        const headY = sy + job.lh / 2;
+        // window cleaner: the robot hangs BELOW the line with its back to the viewer; its raised hand reaches up to the text.
+        // Centre y puts the head top just under the line's bottom edge (WIPE.headTop of the box above the centre).
+        const lineBottom = doc && job.bottom !== undefined ? job.bottom - scrollY : sy + job.lh;
+        const below = { x: 0, y: lineBottom + WIPE.headTop * bh };
+        // fallback order: below the line; if the body there overlaps text or controls, slide along the line to a clear spot;
+        // if nothing below is clear, stand beside the line at its mid-height. Never off-screen.
+        const clampX = (x: number) => Math.max(bw / 2, Math.min(fr.w - bw / 2, x));
+        const clearAt = (x: number, y: number) => !overlaps(boxAt(x, y, bw * 0.8, bh * 0.8), st.texts);
+        const belowY = Math.min(fr.h - bh / 2, below.y);
+        let wipeHome = { x: clampX(sx - MOP_HEAD.dx * bw), y: belowY };
+        // the whole sweep must be clear, not just the start: check the row of spots the robot will visit
+        const rowClear = () => { for (let step = 0; step <= job.w; step += 24) if (!clearAt(clampX(sx + step - MOP_HEAD.dx * bw), belowY)) return false; return true; };
+        if (doc && !rowClear()) {
+          // the row below is blocked (for example by buttons at the left): slide along it to the first clear x, scanning from the right
+          let fx = -1;
+          for (let x = sx + job.w - MOP_HEAD.dx * bw; x >= sx - MOP_HEAD.dx * bw && fx < 0; x -= 12) if (clearAt(clampX(x), belowY)) fx = clampX(x);
+          if (fx >= 0) wipeHome = { x: fx, y: belowY };
+        }
         const home = doc
-          ? { x: headX - MOP_HEAD.dx * bw, y: headY - MOP_HEAD.dy * bh }
+          ? wipeHome
           : job.phase === 'weld'
             ? { x: job.x, y: job.y }
             : { x: job.x + fixSide * bw * 0.55, y: job.y };
@@ -223,12 +239,17 @@ export function SpaceScene() {
             if (doc) window.getSelection()?.removeAllRanges(); // the red patch stands in for the selection
           }
         } else if (doc) {
-          job.prog = Math.min(1, (now - job.t0) / Math.min(3500, Math.max(1200, job.w * 9)));
-          // the mop head rides the clearing front and scrubs a little either side of it
-          spot = { x: home.x + Math.sin((now - job.t0) / 90) * Math.min(14, job.w / 4), y: home.y, free: true };
-          // reveal clear text behind the mop: clip the smear mark from left to right
-          if (markEl.current) markEl.current.style.clipPath = `inset(0 ${((1 - job.prog) * 100).toFixed(1)}% 0 0)`;
-          if (job.prog >= 1) { st.job = null; setMark(null); }
+          // one smooth pass across the selection: ease-in-out, with a short hold at each end. No shaking.
+          const DUR = Math.min(3500, Math.max(1400, job.w * 8));
+          const t = Math.min(1, (now - job.t0) / DUR);
+          job.prog = t < 0.1 ? 0 : t > 0.9 ? 1 : (t - 0.1) / 0.8;
+          const ease = job.prog < 0.5 ? 2 * job.prog * job.prog : 1 - Math.pow(-2 * job.prog + 2, 2) / 2;
+          const blade = sx + job.w * ease;
+          // the robot hangs under the line: x follows the blade, y stays put below the text
+          spot = { x: blade - MOP_HEAD.dx * bw, y: home.y, free: true };
+          // the mark clears from the blade's leading edge (left to right), so the text reads as wiped where the squeegee has been
+          if (markEl.current) markEl.current.style.clipPath = `inset(0 ${((1 - ease) * 100).toFixed(1)}% 0 0)`;
+          if (t >= 1) { st.job = null; setMark(null); }
         } else {
           // repair: grab (0.5s) -> pull (1.4s) -> throw (0.8s) -> weld (2.5s) -> seal (0.4s) -> fixed
           const el = now - job.t0;
@@ -359,11 +380,13 @@ export function SpaceScene() {
         if (host?.closest('input,textarea,form,[contenteditable],dialog') || document.activeElement?.matches('input,textarea')) return; // leave the message form and fields alone
         const r = range.getBoundingClientRect();
         if (r.width < 4 || r.bottom < 0 || r.top > window.innerHeight) return;
-        const lh = range.getClientRects()[0]?.height ?? r.height; // multi-line: the mop works the first line
+        const rects = [...range.getClientRects()].filter(q => q.width > 2 && q.height > 2);
+        const lh = rects[0]?.height ?? r.height; // one text line's height
+        const bottom = rects.reduce((mx, q) => Math.max(mx, q.bottom), r.top); // the selection's lowest edge: the robot hangs below it
         const m = { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height };
         setMark(m);
         if (markEl.current) markEl.current.style.clipPath = '';
-        st.job = { kind: 'wipe', phase: 'go', ...m, lh, prog: 0, t0: performance.now(), pts: [], ms: 0 };
+        st.job = { kind: 'wipe', phase: 'go', ...m, lh, bottom: bottom + scrollY, prog: 0, t0: performance.now(), pts: [], ms: 0 };
       }, 1000);
     };
     document.addEventListener('selectionchange', onSel);
