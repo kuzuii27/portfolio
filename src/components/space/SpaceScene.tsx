@@ -278,6 +278,7 @@ export function SpaceScene() {
       if (st.enter === 'wait' && !isReduced) { st.bx = fr.w + bw; st.by = fr.h + bh; }
       if (!st.init) { st.bx = st.enter === 'wait' && !isReduced ? fr.w + bw : spot.x; st.by = st.enter === 'wait' && !isReduced ? fr.h + bh : spot.y; st.init = true; }
       if (st.enter === 'fly' && Math.hypot(st.bx - spot.x, st.by - spot.y) < 4) st.enter = 'done';
+      if (st.enter === 'done' && held && !st.job) { startFix(held); held = null; } // repair the meteor that landed during the entrance
       st.bs = damp(st.bs, scale, 6, dt);
       const px = st.bx;
       const working = st.job?.kind === 'wipe' && st.job.phase === 'work';
@@ -353,11 +354,16 @@ export function SpaceScene() {
     // hard guarantee: whatever happens to loader:done, the robot is revealed by 4.5s (reduced motion gets a plain fade)
     const safety = window.setTimeout(() => { startEntrance(); if (st.enter !== 'done') st.enter = 'done'; }, 4500);
     window.addEventListener('loader:done', startEntrance);
-    const onHit = (e: Event) => {
-      if (st.enter !== 'done') return; // ignore a meteor until the entrance has finished
-      const { x, y, pts } = (e as CustomEvent<{ x: number; y: number; pts: { x: number; y: number }[] }>).detail;
+    // a meteor that lands during the robot's entrance is held, then repaired as soon as it finishes (never dropped: a dropped hit left the crack with no robot)
+    let held: { x: number; y: number; pts: { x: number; y: number }[] } | null = null;
+    const startFix = (d: { x: number; y: number; pts: { x: number; y: number }[] }) => {
       setMark(null);
-      st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now(), pts, ms: 0 };
+      st.job = { kind: 'fix', phase: 'go', x: d.x, y: d.y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now(), pts: d.pts, ms: 0 };
+    };
+    const onHit = (e: Event) => {
+      const d = (e as CustomEvent<{ x: number; y: number; pts: { x: number; y: number }[] }>).detail;
+      if (st.enter !== 'done') { held = d; return; }
+      startFix(d);
     };
     window.addEventListener('meteor:hit', onHit);
 
