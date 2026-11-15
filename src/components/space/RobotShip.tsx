@@ -234,7 +234,10 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
 
       // right arm: idle wave, wiping scrub, or the repair cycle (grab reach, pull tug, throw wind-up + release, weld trace)
       let tgtX = 0, tgtZ = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3), lean = 0;
-      if (act === 'grab') { tgtX = -Math.PI / 2.2; tgtZ = 0.45; }
+      if (act === 'wipe' && !reduced) {
+        // window cleaner: the near arm reaches UP to the text and stays steady (no shake); a slight lean into the sweep
+        tgtX = 0; tgtZ = 2.4; lean = Math.max(-0.1, Math.min(0.1, cur.tilt * 0.4)); // lean follows the bank (travel direction)
+      } else if (act === 'grab') { tgtX = -Math.PI / 2.2; tgtZ = 0.45; }
       else if (act === 'pull') {
         const tug = Math.max(0, Math.sin(phaseT * Math.PI * 2.2)); // ~2-3 tugs over 1.4 s
         tgtX = -Math.PI / 2.2 + tug * 0.35; tgtZ = 0.45; lean = -tug * 0.12;
