@@ -1,4 +1,5 @@
 import { CaseStudies } from '@/components/CaseStudies';
+import { SystemsShowcase } from '@/components/SystemsShowcase';
 import { SpaceScene } from '@/components/space/SpaceScene';
 import { ScrollJourney } from '@/components/space/ScrollJourney';
 import { MenuButton } from '@/components/ThemeToggle';
@@ -46,7 +47,7 @@ export default function Home() {
         <div className="wrap">
           <span className="nav-side" aria-hidden="true" />
           <nav id="nav-links" aria-label="Main">
-            <a href="#work">Work</a><a href="#skills">Skills</a><a href="#about">About</a><a href="#contact">Contact</a>
+            <a href="#work">Work</a><a href="#systems">Systems</a><a href="#skills">Skills</a><a href="#about">About</a><a href="#contact">Contact</a>
           </nav>
           <div className="nav-actions">
             
@@ -93,6 +94,16 @@ export default function Home() {
               <p></p>
             </div>
             <div data-reveal="up"><CaseStudies /></div>
+          </div>
+        </section>
+
+        <section className="sec" id="systems" aria-labelledby="systems-title">
+          <div className="wrap">
+            <div className="sec-head" data-reveal="up">
+              <h2 id="systems-title">Systems I can build for your business</h2>
+              <p>Practical tools for shops, clinics and small teams. Two of these build on work I have done; the rest are scope I can deliver.</p>
+            </div>
+            <div data-reveal="up"><SystemsShowcase /></div>
           </div>
         </section>
 

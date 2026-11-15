@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MSG_LIMITS } from '@/lib/message';
 
 type Status = { kind: 'idle' | 'sending' | 'sent' | 'error'; text?: string };
@@ -9,6 +9,20 @@ type Status = { kind: 'idle' | 'sending' | 'sent' | 'error'; text?: string };
 export function MessageForm() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // "Ask about this" on a system card: start the message with it, never overwriting what the visitor typed
+  useEffect(() => {
+    const on = (e: Event) => {
+      const topic = (e as CustomEvent<string>).detail;
+      const el = box.current;
+      if (!el) return;
+      if (topic && !el.value.trim()) el.value = `Hi, I'm interested in: ${topic}. `;
+      setTimeout(() => el.focus({ preventScroll: true }), 700); // after the smooth scroll lands
+    };
+    window.addEventListener('contact:topic', on);
+    return () => window.removeEventListener('contact:topic', on);
+  }, []);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,7 +53,7 @@ export function MessageForm() {
         </label>
       </div>
       <label>Message
-        <textarea name="message" rows={4} required maxLength={MSG_LIMITS.message} aria-invalid={!!errors.message} aria-describedby={errors.message ? 'msg-text-err' : undefined} />
+        <textarea ref={box} name="message" rows={4} required maxLength={MSG_LIMITS.message} aria-invalid={!!errors.message} aria-describedby={errors.message ? 'msg-text-err' : undefined} />
         {errors.message && <em id="msg-text-err">{errors.message}</em>}
       </label>
       <input className="msg-hp" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />

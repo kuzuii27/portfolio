@@ -10,7 +10,7 @@ import { createPlanet, SUN_DIR, type PlanetHandle } from '@/components/space/Pla
 import { createSkyObject } from '@/components/space/SkyObjects';
 import { Starfield } from '@/components/space/Starfield';
 import { ShootingStars } from '@/components/space/ShootingStars';
-import { RobotShip } from '@/components/space/RobotShip';
+import { RobotShip, MOP_HEAD } from '@/components/space/RobotShip';
 
 const N = PLANETS.length;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,6 +22,17 @@ const watchTheme = (cb: () => void) => {
 };
 const vw = () => document.documentElement.clientWidth; // innerWidth can exceed the layout width on mobile (zoom, scrollbar)
 const vh = () => window.innerHeight;
+// Robot layout height: the smallest innerHeight since the last real resize, so the mobile URL bar showing/hiding never moves the targets.
+let stableH = 0;
+let stableW = 0;
+const syncH = () => {
+  const w = vw();
+  const h = window.innerHeight;
+  if (!stableH || w !== stableW || Math.abs(h - stableH) >= 150) stableH = h; // real resize or rotation
+  else stableH = Math.min(stableH, h);
+  stableW = w;
+};
+const rh = () => stableH || window.innerHeight;
 const damp = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
 const botSize = () => (vw() < 768 ? { w: 96, h: 132 } : { w: 150, h: 206 });
 
@@ -31,10 +42,9 @@ export function SpaceScene() {
   const botEl = useRef<HTMLDivElement>(null);
   const pLive = useRef(0); // scroll progress 0..1, written by journey:progress
   const [webgl, setWebgl] = useState(true);
-  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, scrub: false });
+  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, scrub: false, mop: false });
   const [mark, setMark] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const markEl = useRef<HTMLSpanElement>(null);
-  const mopEl = useRef<HTMLSpanElement>(null);
   const tapped = useRef(0); // bumped by a tap on the robot
   const th = useSyncExternalStore(watchTheme, theme, () => 'light' as const);
 
@@ -79,10 +89,11 @@ export function SpaceScene() {
       cam.updateProjectionMatrix();
     };
     layout();
+    syncH();
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'work' | 'pull' | 'throw' | 'weld'; x: number; y: number; w: number; h: number; prog: number; t0: number }, init: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'work' | 'pull' | 'throw' | 'weld'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number }, init: false, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -119,7 +130,7 @@ export function SpaceScene() {
       const el = botEl.current;
       if (!el) return;
       const { w: bw, h: bh } = botSize();
-      const fr = { w: vw(), h: vh() };
+      const fr = { w: vw(), h: rh() };
       const now = performance.now();
       if (now - st.textsAt > 120) {
         st.texts = visibleTextBoxes(document.querySelector('main') ?? document.body, fr.w, fr.h);
@@ -127,7 +138,9 @@ export function SpaceScene() {
         // the words nearest the middle of the screen: the robot flies right beside them
         const mid = fr.h * 0.5;
         const line = st.texts.filter((b) => b.b - b.t > 10).sort((a, c) => Math.abs((a.t + a.b) / 2 - mid) - Math.abs((c.t + c.b) / 2 - mid))[0];
-        st.anchor = line ? { x: Math.max(line.r, st.copyRight), y: (line.t + line.b) / 2, l: line.l } : { x: fr.w * 0.5, y: mid, l: fr.w * 0.5 };
+        const next = line ? { x: Math.max(line.r, st.copyRight), y: (line.t + line.b) / 2, l: line.l } : { x: fr.w * 0.5, y: mid, l: fr.w * 0.5 };
+        // hysteresis: keep the current anchor unless the new line is clearly elsewhere
+        if (!st.anchored || Math.hypot(next.x - st.anchor.x, next.y - st.anchor.y) > 80) { st.anchor = next; st.anchored = true; }
         st.textsAt = now;
         // left mode (after a tap): the free spot nearest the left edge, found by scanning inward at the robot's height
         st.leftSpot = null;
@@ -170,10 +183,13 @@ export function SpaceScene() {
         const doc = job.kind === 'wipe';
         const sx = doc ? job.x - scrollX : job.x;
         const sy = doc ? job.y - scrollY : job.y;
+        if (doc && (sy + job.h < 0 || sy > window.innerHeight)) { st.job = null; setMark(null); return; } // scrolled out of view: end cleanly
         const fixSide = job.x < fr.w * 0.6 ? 1 : -1;
-        // during weld the hand goes straight to the hole centre; other phases hover beside it
+        // wipe: park the robot so the mop head (MOP_HEAD, robot-box fractions) sits on the text line; fix: hover beside the crack
+        const headX = sx + job.w * job.prog;
+        const headY = sy + job.lh / 2;
         const home = doc
-          ? { x: sx + job.w / 2, y: sy + job.h / 2 }
+          ? { x: headX - MOP_HEAD.dx * bw, y: headY - MOP_HEAD.dy * bh }
           : job.phase === 'weld'
             ? { x: job.x, y: job.y }
             : { x: job.x + fixSide * bw * 0.55, y: job.y };
@@ -186,19 +202,11 @@ export function SpaceScene() {
           }
         } else if (doc) {
           job.prog = Math.min(1, (now - job.t0) / Math.min(3500, Math.max(1200, job.w * 9)));
-          // scrub back and forth; mop x tracks the robot
-          spot = { x: home.x + Math.sin((now - job.t0) / 90) * Math.min(job.w / 2, 70) * (0.4 + 0.6 * job.prog), y: home.y, free: true };
-          // reveal clear text under the mop: clip the smear mark from left to right
+          // the mop head rides the clearing front and scrubs a little either side of it
+          spot = { x: home.x + Math.sin((now - job.t0) / 90) * Math.min(14, job.w / 4), y: home.y, free: true };
+          // reveal clear text behind the mop: clip the smear mark from left to right
           if (markEl.current) markEl.current.style.clipPath = `inset(0 ${((1 - job.prog) * 100).toFixed(1)}% 0 0)`;
-          // keep the mop handle at the robot's hand tip (bottom-centre of the robot box)
-          if (mopEl.current) {
-            const mx = st.bx - scrollX;
-            const my = st.by - scrollY + (botSize().h * 0.42);
-            mopEl.current.style.left = `${mx.toFixed(1)}px`;
-            mopEl.current.style.top = `${my.toFixed(1)}px`;
-            mopEl.current.style.display = 'block';
-          }
-          if (job.prog >= 1) { st.job = null; setMark(null); if (mopEl.current) mopEl.current.style.display = 'none'; }
+          if (job.prog >= 1) { st.job = null; setMark(null); }
         } else {
           // repair: tug the meteor out, throw it back into space, then weld the hole shut
           const el = now - job.t0;
@@ -208,19 +216,33 @@ export function SpaceScene() {
         }
         if (!doc) st.facing = fixSide === 1 ? -1 : 1; // face the crack
       } else {
-        spot = freeSpot({ x: wantX, y: wantY }, bw, bh, st.texts, fr.w, fr.h);
-        if (!spot.free) { scale = 0.6; spot = freeSpot({ x: wantX, y: wantY }, bw * scale, bh * scale, st.texts, fr.w, fr.h); }
-        if (!spot.free) { scale = 0.42; spot = freeSpot({ x: wantX, y: wantY }, bw * scale, bh * scale, st.texts, fr.w, fr.h); }
+        let sc = 1;
+        let c = freeSpot({ x: wantX, y: wantY }, bw, bh, st.texts, fr.w, fr.h);
+        if (!c.free) { sc = 0.6; c = freeSpot({ x: wantX, y: wantY }, bw * sc, bh * sc, st.texts, fr.w, fr.h); }
+        if (!c.free) { sc = 0.42; c = freeSpot({ x: wantX, y: wantY }, bw * sc, bh * sc, st.texts, fr.w, fr.h); }
+        // hysteresis: a displaced pick replaces the held target only when the held one is blocked, or the new one is far and 400ms have passed
+        const t = st.tgt;
+        const held = !!t && !overlaps(boxAt(t.x, t.y, bw * t.sc, bh * t.sc), st.texts);
+        const direct = c.free && sc === 1 && Math.hypot(c.x - wantX, c.y - wantY) < 1; // not displaced: follow the patrol smoothly
+        if (!t || direct || !held || (now - st.tgtAt > 400 && Math.hypot(c.x - t.x, c.y - t.y) > 80)) { st.tgt = { x: c.x, y: c.y, sc, free: c.free }; st.tgtAt = now; }
+        spot = st.tgt!;
+        scale = st.tgt!.sc;
       }
+      if (st.job) st.tgt = null; // pick afresh after the job
       if (!st.init) { st.bx = spot.x; st.by = spot.y; st.init = true; }
       st.bs = damp(st.bs, scale, 6, dt);
       const px = st.bx;
-      const dampRate = fr.w < 768 && !st.job ? 0.9 : 3.2; // mobile free-roam: drift slowly
-      st.bx = damp(st.bx, spot.x, isReduced ? 60 : dampRate, dt);
-      st.by = damp(st.by, spot.y, isReduced ? 60 : dampRate, dt);
+      const working = st.job?.kind === 'wipe' && st.job.phase === 'work';
+      const dampRate = working ? 14 : fr.w < 768 && !st.job ? 0.9 : 3.2; // mobile free-roam: drift slowly; the mop must track the sweep
+      // clamp each step so a big target change glides instead of jumping
+      const maxStep = isReduced ? Infinity : Math.min(600, fr.w) * dt;
+      const stepTo = (cur: number, to: number) => { const d = damp(cur, to, isReduced ? 60 : dampRate, dt) - cur; return cur + Math.max(-maxStep, Math.min(maxStep, d)); };
+      st.bx = stepTo(st.bx, spot.x);
+      st.by = stepTo(st.by, spot.y);
       if (!st.job && Math.abs(st.bx - px) > 0.2) st.facing = st.bx > px ? 1 : -1;
       el.style.transform = `translate3d(${(st.bx - bw / 2).toFixed(1)}px, ${(st.by - bh / 2).toFixed(1)}px, 0) scale(${st.bs.toFixed(3)})`;
-      el.style.opacity = spot.free ? '1' : '0.35'; // last resort only: no free spot anywhere
+      st.op = damp(st.op, spot.free ? 1 : 0.35, 6, dt);
+      el.style.opacity = st.op.toFixed(3); // dims only as a last resort: no free spot anywhere
       const vx = (st.bx - px) / Math.max(dt, 0.001);
       st.bt = damp(st.bt, Math.max(-0.5, Math.min(0.5, (vx / fr.w) * 3)), 8, dt);
       st.fly = damp(st.fly, Math.min(1, Math.hypot(vx, (st.by - st.pby) / Math.max(dt, 0.001)) / (fr.w * 0.25)), 4, dt);
@@ -247,21 +269,23 @@ export function SpaceScene() {
         const arrived = Math.abs(st.f - Math.round(st.f)) < 0.06 && st.fly < 0.25 && !st.job;
         const thrust = 0.4 + Math.min(0.6, st.fly * 1.2 + st.speed * 1.5);
         const scrub = !!st.job && st.job.phase !== 'go' && st.job.phase !== 'throw';
-        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.scrub === scrub && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, scrub }));
+        const mop = !!st.job && st.job.kind === 'wipe' && st.job.phase === 'work';
+        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.scrub === scrub && o.mop === mop && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, scrub, mop }));
       }
       if (!isReduced) raf = requestAnimationFrame(frame);
     };
     if (isReduced) frame(performance.now()); // one static frame
     else raf = requestAnimationFrame(frame);
 
-    const onResize = () => { layout(); st.init = false; if (isReduced) frame(performance.now()); };
+    // never snap the robot: it glides (speed-clamped) to whatever the new layout wants; URL-bar height changes are absorbed by syncH
+    const onResize = () => { layout(); syncH(); if (isReduced) frame(performance.now()); };
     window.addEventListener('resize', onResize);
 
     // meteor crack: the robot flies over and repairs it (Meteor.tsx removes the crack on `meteor:fixed`)
     const onHit = (e: Event) => {
       const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail;
       setMark(null);
-      st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, prog: 0, t0: performance.now() };
+      st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now() };
     };
     window.addEventListener('meteor:hit', onHit);
 
@@ -270,18 +294,24 @@ export function SpaceScene() {
     let selTimer = 0;
     const onSel = () => {
       clearTimeout(selTimer);
-      const text = window.getSelection()?.toString().trim() ?? '';
+      const sel = window.getSelection();
+      const text = sel?.toString().trim() ?? '';
+      if (st.job?.kind === 'wipe' && st.job.phase === 'go' && !text) { st.job = null; setMark(null); return; } // pick cleared before the robot arrived
       if (isReduced || !text || st.job) return;
       selTimer = window.setTimeout(() => {
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0 || sel.toString().trim() !== text || st.job) return;
-        const r = sel.getRangeAt(0).getBoundingClientRect();
-        if (r.width < 4 || r.bottom < 0 || r.top > vh()) return;
+        const range = sel.getRangeAt(0);
+        const node = range.commonAncestorContainer;
+        const host = node instanceof Element ? node : node.parentElement;
+        if (host?.closest('input,textarea,form,[contenteditable],dialog') || document.activeElement?.matches('input,textarea')) return; // leave the message form and fields alone
+        const r = range.getBoundingClientRect();
+        if (r.width < 4 || r.bottom < 0 || r.top > window.innerHeight) return;
+        const lh = range.getClientRects()[0]?.height ?? r.height; // multi-line: the mop works the first line
         const m = { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height };
         setMark(m);
         if (markEl.current) markEl.current.style.clipPath = '';
-        if (mopEl.current) mopEl.current.style.display = 'none';
-        st.job = { kind: 'wipe', phase: 'go', ...m, prog: 0, t0: performance.now() };
+        st.job = { kind: 'wipe', phase: 'go', ...m, lh, prog: 0, t0: performance.now() };
       }, 1000);
     };
     document.addEventListener('selectionchange', onSel);
@@ -306,9 +336,8 @@ export function SpaceScene() {
       <Starfield theme={th} count={900} />
       <ShootingStars theme={th} />
       {mark && <span className="bot-mark" ref={markEl} aria-hidden="true" style={{ left: mark.x, top: mark.y, width: mark.w, height: mark.h }} />}
-      <span className="bot-mop" ref={mopEl} aria-hidden="true" style={{ display: 'none' }} />
       <div className="space-bot" ref={botEl} aria-hidden="true" onClick={() => { tapped.current++; }}>
-        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} scrub={pose.scrub} />
+        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} scrub={pose.scrub} mop={pose.mop} />
       </div>
     </>
   );

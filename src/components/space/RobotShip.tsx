@@ -4,18 +4,20 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-type Props = { tilt: number; thrust: number; facing?: 1 | -1; arrived?: boolean; scrub?: boolean }; // tilt: radians, + = bank right; thrust: 0..1 flame length
+type Props = { tilt: number; thrust: number; facing?: 1 | -1; arrived?: boolean; scrub?: boolean; mop?: boolean }; // tilt: radians, + = bank right; thrust: 0..1 flame length
 
 const MODEL = '/models/robot.glb';
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
+/** Where the cloth lands while mopping (robot turned away), as a fraction of the robot box from its centre. Derived from the arm/mop geometry below. */
+export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
 
 /** The flying main character: procedural robot + thruster flame. Uses /models/robot.glb when it exists. Position comes from the parent. */
-export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = false }: Props) {
+export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = false, mop: mopping = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const input = useRef({ tilt, thrust, facing, arrived, scrub });
+  const input = useRef({ tilt, thrust, facing, arrived, scrub, mopping });
   useEffect(() => {
-    input.current = { tilt, thrust, facing, arrived, scrub };
-  }, [tilt, thrust, facing, arrived, scrub]);
+    input.current = { tilt, thrust, facing, arrived, scrub, mopping };
+  }, [tilt, thrust, facing, arrived, scrub, mopping]);
 
   useEffect(() => {
     const el = host.current;
@@ -74,11 +76,25 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x9be7ff });
     const eyes = [-1, 1].map((s) => add(head, new THREE.SphereGeometry(0.055, 12, 8), eyeMat, s * 0.13, 0, 0.47)); // slide inside the visor toward the cursor
     const armGeo = new THREE.CapsuleGeometry(0.09, 0.35, 4, 12);
+    const socketGeo = new THREE.SphereGeometry(0.13, 20, 14);
+    const handGeo = new THREE.SphereGeometry(0.11, 20, 14);
+    const mopGeo = [new THREE.CylinderGeometry(0.025, 0.025, 1.15, 10), new THREE.BoxGeometry(0.56, 0.12, 0.2), new THREE.BoxGeometry(0.5, 0.09, 0.18)];
+    let mop!: THREE.Group;
     const arms = [-1, 1].map((side) => {
-      const a = new THREE.Group(); // shoulder pivot
-      a.position.set(side * 0.52, 0.2, 0);
+      add(proc, socketGeo, joint, side * 0.41, 0.2, 0); // joint ball seated in the torso wall (half width 0.4)
+      const a = new THREE.Group(); // shoulder pivot = socket centre
+      a.position.set(side * 0.41, 0.2, 0);
       proc.add(a);
       add(a, armGeo, joint, 0, -0.27, 0);
+      const hand = add(a, handGeo, shell, 0, -0.56, 0); // on the arm axis, overlaps the capsule end
+      if (side === 1) {
+        mop = new THREE.Group(); // child of the hand: the handle passes through the palm
+        hand.add(mop);
+        add(mop, mopGeo[0], joint, 0, -0.375, 0);
+        add(mop, mopGeo[1], shell, 0, -1.0, 0);
+        add(mop, mopGeo[2], glow, 0, -1.08, 0); // cloth tip
+        mop.visible = false;
+      }
       return a;
     });
     add(proc, new THREE.CylinderGeometry(0.3, 0.3, 0.12, 24), joint, 0, -0.5, 0);
@@ -126,7 +142,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
     const look = { x: innerWidth / 2, y: innerHeight / 2 };
     const onMove = (e: PointerEvent) => { look.x = e.clientX; look.y = e.clientY; };
     addEventListener('pointermove', onMove, { passive: true });
-    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, lx: 0, ly: 0 };
+    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, lx: 0, ly: 0 };
     let raf = 0;
     let last = performance.now();
     let t = 0;
@@ -135,12 +151,13 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       last = now;
       if (!reduced) t += dt;
       const k = Math.min(1, dt * 6);
-      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, scrub: busy } = input.current;
+      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, scrub: busy, mopping: mopOn } = input.current;
       cur.tilt += (tiltTo - cur.tilt) * k;
       cur.thrust += (thrustTo - cur.thrust) * k;
       cur.yaw += ((busy ? Math.PI : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth, silky rotation without sudden jerks
       cur.wave += ((here && !reduced ? 1 : 0) - cur.wave) * Math.min(1, dt * 5);
-      cur.scrub += ((busy && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
+      cur.scrub += ((busy && !mopOn && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
+      cur.mop += ((mopOn && !reduced ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);
       const box = el.getBoundingClientRect();
       const clamp1 = (v: number) => Math.max(-1, Math.min(1, v));
       cur.lx += (clamp1((look.x - (box.left + box.width / 2)) / 300) - cur.lx) * k;
@@ -151,8 +168,11 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       ship.rotation.z = -cur.tilt - face * cur.thrust * 0.2; // bank by tilt, lean forward while moving
       head.rotation.y = (reduced ? 0 : Math.sin(t * 1.3) * 0.5 * (1 - cur.thrust)) + cur.lx * 0.3;
       const raised = Math.max(cur.wave, cur.scrub);
-      arms[1].rotation.z = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3);
-      if (busy) { arms[1].rotation.x = -Math.PI / 2.4; arms[0].rotation.x = -Math.PI / 2.4; } else { arms[1].rotation.x = 0; arms[0].rotation.x = 0; } // raised: waves when arrived, scrubs fast when working
+      arms[1].rotation.z = 0.15 + raised * (2.2 + Math.sin(t * (cur.scrub > 0.5 ? 22 : 8)) * 0.3); // waves when arrived, works fast on a repair; stays down while mopping
+      if (busy && !mopOn) { arms[1].rotation.x = -Math.PI / 2.4; arms[0].rotation.x = -Math.PI / 2.4; } else { arms[1].rotation.x = 0; arms[0].rotation.x = 0; }
+      mop.rotation.z = -arms[1].rotation.z; // handle stays vertical whatever the arm does
+      mop.scale.setScalar(Math.max(0.001, cur.mop));
+      mop.visible = cur.mop > 0.01;
       arms[0].rotation.z = -0.15 - cur.thrust * 0.3;
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;
@@ -175,6 +195,9 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, scrub = f
       });
       flameGeo.dispose();
       armGeo.dispose();
+      socketGeo.dispose();
+      handGeo.dispose();
+      mopGeo.forEach((g) => g.dispose());
       renderer.dispose();
       renderer.domElement.remove();
     };
