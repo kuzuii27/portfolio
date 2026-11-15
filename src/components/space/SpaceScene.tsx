@@ -59,7 +59,7 @@ export function SpaceScene() {
   const botEl = useRef<HTMLDivElement>(null);
   const pLive = useRef(0); // scroll progress 0..1, written by journey:progress
   const [webgl, setWebgl] = useState(true);
-  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, action: 'idle' as Action });
+  const [pose, setPose] = useState({ tilt: 0, thrust: 0.35, facing: 1 as 1 | -1, arrived: true, action: 'idle' as Action, entering: true });
   const [mark, setMark] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   // repair overlay, in page px: the held rock follows the grip point; the torch tip drives the weld sparks and seam progress
   const [rep, setRep] = useState<Rep | null>(null);
@@ -116,7 +116,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -253,7 +253,10 @@ export function SpaceScene() {
         scale = st.tgt!.sc;
       }
       if (st.job) st.tgt = null; // pick afresh after the job
-      if (!st.init) { st.bx = spot.x; st.by = spot.y; st.init = true; }
+      // page robot entrance: waits hidden off-screen until loader:done, then the damping below carries it in from the bottom-right
+      if (st.enter === 'wait' && !isReduced) { st.bx = fr.w + bw; st.by = fr.h + bh; }
+      if (!st.init) { st.bx = st.enter === 'wait' && !isReduced ? fr.w + bw : spot.x; st.by = st.enter === 'wait' && !isReduced ? fr.h + bh : spot.y; st.init = true; }
+      if (st.enter === 'fly' && Math.hypot(st.bx - spot.x, st.by - spot.y) < 4) st.enter = 'done';
       st.bs = damp(st.bs, scale, 6, dt);
       const px = st.bx;
       const working = st.job?.kind === 'wipe' && st.job.phase === 'work';
@@ -265,8 +268,8 @@ export function SpaceScene() {
       st.by = stepTo(st.by, spot.y);
       if (!st.job && Math.abs(st.bx - px) > 0.2) st.facing = st.bx > px ? 1 : -1;
       el.style.transform = `translate3d(${(st.bx - bw / 2).toFixed(1)}px, ${(st.by - bh / 2).toFixed(1)}px, 0) scale(${st.bs.toFixed(3)})`;
-      st.op = damp(st.op, spot.free ? 1 : 0.35, 6, dt);
-      el.style.opacity = st.op.toFixed(3); // dims only as a last resort: no free spot anywhere
+      st.op = damp(st.op, st.enter === 'wait' ? 0 : spot.free ? 1 : 0.35, 6, dt); // hidden until loader:done, then fades in as it flies
+      el.style.opacity = st.enter === 'wait' && !isReduced ? '0' : st.op.toFixed(3); // hard hide until loader:done; dims only as a last resort: no free spot anywhere
       const vx = (st.bx - px) / Math.max(dt, 0.001);
       st.bt = damp(st.bt, Math.max(-0.5, Math.min(0.5, (vx / fr.w) * 3)), 8, dt);
       st.fly = damp(st.fly, Math.min(1, Math.hypot(vx, (st.by - st.pby) / Math.max(dt, 0.001)) / (fr.w * 0.25)), 4, dt);
@@ -292,8 +295,9 @@ export function SpaceScene() {
         poseAt = now;
         const arrived = Math.abs(st.f - Math.round(st.f)) < 0.06 && st.fly < 0.25 && !st.job;
         const thrust = 0.4 + Math.min(0.6, st.fly * 1.2 + st.speed * 1.5);
+        const entering = st.enter !== 'done';
         const action: Action = !st.job ? 'idle' : st.job.kind === 'wipe' ? (st.job.phase === 'work' ? 'wipe' : 'idle') : st.job.phase === 'grab' || st.job.phase === 'pull' || st.job.phase === 'throw' || st.job.phase === 'weld' ? st.job.phase : 'idle';
-        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.action === action && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, action }));
+        setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.action === action && o.entering === entering && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, action, entering }));
         if (repRef.current) setRep(repRef.current);
 
       }
@@ -321,7 +325,15 @@ export function SpaceScene() {
       repRef.current = { grip: g, tip: tp, torch: torchOn, stage, rel: job.rel, dir: job.dir };
     };
     onHandRef.current = onHand;
+    // loader:done starts the entrance; the robot stays hidden until then, and a safety timer reveals it if the event never comes
+    // reduced motion has no fly-in (the scene draws one static frame), so the robot is shown at its spot with a plain fade
+    if (isReduced) st.enter = 'done';
+    const startEntrance = () => { if (st.enter === 'wait') { st.enter = 'fly'; st.enterAt = performance.now(); } };
+    // hard guarantee: whatever happens to loader:done, the robot is revealed by 4.5s (reduced motion gets a plain fade)
+    const safety = window.setTimeout(() => { startEntrance(); if (st.enter !== 'done') st.enter = 'done'; }, 4500);
+    window.addEventListener('loader:done', startEntrance);
     const onHit = (e: Event) => {
+      if (st.enter !== 'done') return; // ignore a meteor until the entrance has finished
       const { x, y, pts } = (e as CustomEvent<{ x: number; y: number; pts: { x: number; y: number }[] }>).detail;
       setMark(null);
       st.job = { kind: 'fix', phase: 'go', x, y, w: 0, h: 0, lh: 0, prog: 0, t0: performance.now(), pts, ms: 0 };
@@ -333,6 +345,7 @@ export function SpaceScene() {
     let selTimer = 0;
     const onSel = () => {
       clearTimeout(selTimer);
+      if (st.enter !== 'done') return; // no wipe jobs during the entrance
       const sel = window.getSelection();
       const text = sel?.toString().trim() ?? '';
       if (st.job?.kind === 'wipe' && st.job.phase === 'go' && !text) { st.job = null; setMark(null); return; } // pick cleared before the robot arrived
@@ -359,6 +372,8 @@ export function SpaceScene() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('meteor:hit', onHit);
+      window.removeEventListener('loader:done', startEntrance);
+      clearTimeout(safety);
       document.removeEventListener('selectionchange', onSel);
       clearTimeout(selTimer);
       planets.forEach((h) => h.dispose());
@@ -376,7 +391,7 @@ export function SpaceScene() {
       <ShootingStars theme={th} />
       {mark && <span className="bot-mark" ref={markEl} aria-hidden="true" style={{ left: mark.x, top: mark.y, width: mark.w, height: mark.h }} />}
       <div className="space-bot" ref={botEl} aria-hidden="true" onClick={() => { tapped.current++; }}>
-        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} action={pose.action} onHand={handHook} />
+        <RobotShip tilt={pose.tilt} thrust={pose.thrust} facing={pose.facing} arrived={pose.arrived} action={pose.action} entering={pose.entering} onHand={handHook} />
       </div>
       {rep && <RepairOverlay r={rep} />}
     </>

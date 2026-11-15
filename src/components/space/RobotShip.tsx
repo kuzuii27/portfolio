@@ -14,6 +14,8 @@ type Props = {
   facing?: 1 | -1;
   arrived?: boolean;
   action?: Action;
+  /** true while the page robot flies in after the loader: it turns to face the screen and burns its thrust */
+  entering?: boolean;
   onHand?: (grip: { x: number; y: number }, tip: { x: number; y: number }, torchOn: number) => void;
 };
 
@@ -23,12 +25,12 @@ const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
 
 /** The flying main character: procedural robot + thruster flame. Uses /models/robot.glb when it exists. Position comes from the parent. */
-export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 'idle', onHand }: Props) {
+export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 'idle', entering = false, onHand }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const input = useRef({ tilt, thrust, facing, arrived, action, onHand });
+  const input = useRef({ tilt, thrust, facing, arrived, action, entering, onHand });
   useEffect(() => {
-    input.current = { tilt, thrust, facing, arrived, action, onHand };
-  }, [tilt, thrust, facing, arrived, action, onHand]);
+    input.current = { tilt, thrust, facing, arrived, action, entering, onHand };
+  }, [tilt, thrust, facing, arrived, action, entering, onHand]);
 
   useEffect(() => {
     const el = host.current;
@@ -188,7 +190,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       last = now;
       if (!reduced) t += dt;
       const k = Math.min(1, dt * 6);
-      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, action: act, onHand: report } = input.current;
+      const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, action: act, entering: enter, onHand: report } = input.current;
       if (act !== prevAct) { phaseT = 0; prevAct = act; }
       phaseT += dt;
       const repair = act === 'grab' || act === 'pull' || act === 'throw' || act === 'weld';
@@ -196,7 +198,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       const weldOn = act === 'weld' && !reduced;
       cur.tilt += (tiltTo - cur.tilt) * k;
       cur.thrust += (thrustTo - cur.thrust) * k;
-      cur.yaw += ((repair || act === 'wipe' ? Math.PI : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth rotation, no jerks
+      // while flying in the robot faces the screen (yaw 0); at rest it turns to the usual facing. Same damping either way.
+      cur.yaw += ((repair || act === 'wipe' ? Math.PI : enter ? 0 : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth rotation, no jerks
       cur.wave += ((here && !reduced ? 1 : 0) - cur.wave) * Math.min(1, dt * 5);
       cur.scrub += (((act === 'wipe' || repair) && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
       cur.mop += ((mopOn ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);

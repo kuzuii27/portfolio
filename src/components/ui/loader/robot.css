@@ -1,0 +1,47 @@
+/* ROBOT LOADER (active). The site robot seen from behind, flying into the screen. Classes prefixed rl-. Transform and opacity only. */
+
+.rl-root{position:fixed;inset:0;z-index:10000;background:#0a0a0a;overflow:hidden;display:grid;place-items:center;align-content:center;gap:18px;animation:ld-fallback-hide 0s 4s forwards}
+.rl-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(640px 420px at 50% 30%,rgba(56,189,248,.12),transparent 70%)}
+.rl-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1px 1px at 12% 18%,#fff 0,transparent 100%),radial-gradient(1px 1px at 82% 14%,#fff 0,transparent 100%),radial-gradient(1.5px 1.5px at 28% 72%,#cfe9ff 0,transparent 100%),radial-gradient(1px 1px at 64% 34%,#fff 0,transparent 100%),radial-gradient(1px 1px at 90% 80%,#fff 0,transparent 100%);animation:rl-twinkle 3.2s ease-in-out infinite alternate}
+@keyframes rl-twinkle{from{opacity:.4}to{opacity:1}}
+
+/* speed streaks: rush out from the vanishing point, past the robot, and fade */
+.rl-rays{position:absolute;left:50%;top:30%;width:0;height:0;pointer-events:none}
+.rl-ray{position:absolute;left:0;top:0;width:90px;height:1.5px;margin-top:-.75px;transform-origin:0 50%;background:linear-gradient(to right,transparent,rgba(56,189,248,.55));opacity:0;animation:rl-ray 1.6s linear infinite}
+@keyframes rl-ray{0%{opacity:0;transform:rotate(var(--a)) translateX(0)}15%{opacity:.7}100%{opacity:0;transform:rotate(var(--a)) translateX(70vmax)}}
+
+/* the robot: hover bob, head sway, flames flicker out of phase */
+.rl-bot{position:relative;width:clamp(120px,22vmin,220px);aspect-ratio:1;will-change:transform;animation:rl-hover 2.4s ease-in-out infinite}
+@keyframes rl-hover{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+.rl-bot svg{display:block;width:100%;height:100%;overflow:visible}
+.rl-head{transform-box:fill-box;transform-origin:50% 100%;animation:rl-sway 3.2s ease-in-out infinite}
+@keyframes rl-sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.rl-antenna{animation:rl-blink 1.2s ease-in-out infinite}
+.rl-light{animation:rl-blink 1.8s ease-in-out infinite}
+@keyframes rl-blink{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* flames grow over the loading time (a time proxy: there is no real progress signal here) and flicker */
+.rl-grow{transform-box:fill-box;transform-origin:50% 0;animation:rl-grow 1.9s ease-out forwards;transform:scale(.8)}
+@keyframes rl-grow{to{transform:scale(1.15)}}
+.rl-flame{transform-box:fill-box;transform-origin:50% 0;animation:rl-flicker .18s ease-in-out infinite alternate}
+.rl-flame-r{animation-delay:-.09s}
+@keyframes rl-flicker{from{transform:scaleY(.82);opacity:.85}to{transform:scaleY(1.12);opacity:1}}
+
+/* launch: a dip (anticipation), then up toward the vanishing point, shrinking; flames boost; trail; overlay fades late */
+.rl-trail{position:absolute;left:50%;top:92%;width:6px;margin-left:-3px;height:0;border-radius:3px;background:linear-gradient(to bottom,#e0f2ff,rgba(56,189,248,.7) 40%,transparent);opacity:0;pointer-events:none}
+.rl-root[data-phase=launch]{animation:rl-fade .65s linear forwards}
+@keyframes rl-fade{0%,55%{opacity:1}100%{opacity:0}}
+.rl-root[data-phase=launch] .rl-bot{animation:rl-launch .65s cubic-bezier(.5,0,.8,.4) forwards}
+@keyframes rl-launch{0%{transform:translate(0,0) scale(1)}18%{transform:translate(0,6%) scale(.96)}100%{transform:translate(0,-55vh) scale(.25)}}
+.rl-root[data-phase=launch] .rl-flame{animation:rl-boost .12s ease-in-out infinite alternate}
+@keyframes rl-boost{from{transform:scaleY(1.3)}to{transform:scaleY(1.8)}}
+.rl-root[data-phase=launch] .rl-trail{animation:rl-trail .65s ease-out forwards}
+@keyframes rl-trail{0%{opacity:0;height:0}30%{opacity:1}100%{opacity:.2;height:60vh}}
+.rl-root[data-phase=launch] .ld-word{opacity:0;transition:opacity .2s}
+
+/* reduced motion: a static robot, no flicker, no streaks, a plain fade */
+@media (prefers-reduced-motion:reduce){
+  .rl-root{animation:ld-fade-out .25s ease-out forwards}
+  .rl-root *{animation:none!important}
+  .rl-grow{transform:scale(1)}
+}
