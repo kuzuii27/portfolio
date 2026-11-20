@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { GUNS, gameState, type Gun } from '@/lib/game';
 
 /** 'wipe' = text-wipe job (was the `scrub` boolean). grab/pull/throw/weld = meteor repair. */
 export type Action = 'idle' | 'wipe' | 'grab' | 'pull' | 'throw' | 'weld';
@@ -20,6 +21,9 @@ type Props = {
 };
 
 const MODEL = '/models/robot.glb';
+const GUN_SCALE = 1.5; // game guns are drawn bigger than the tools so they read at a glance
+/** Barrel tip in hand space (before GUN_SCALE is applied elsewhere): where shots leave from. */
+const MUZZLE_Y: Record<Gun, number> = { pistol: -0.86, laser: -1.04, rocket: -1.3 };
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
 /** Where the cloth lands while mopping (robot turned away), as a fraction of the robot box from its centre. Derived from the arm/mop geometry below. */
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
@@ -107,6 +111,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     let mop!: THREE.Group;
     let squeegee!: THREE.Group;
     let torch!: THREE.Group;
+    let guns!: Record<Gun, THREE.Group>;
+    let muzzle!: THREE.Object3D; // empty anchor at the barrel tip, projected to page px for the shot origin
     let grip!: THREE.Object3D; // empty anchor at the palm: where the rock is held
     let tip!: THREE.Object3D; // empty anchor at the torch nozzle end
     const arms = [-1, 1].map((side) => {
@@ -143,6 +149,23 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
         add(squeegee, squeeGeo[2], rubber, 0, -0.6, 0); // blade, flat against the glass
         squeegee.visible = false;
         squeegee.scale.setScalar(0.001);
+
+        // game guns: same hand mount, barrel along the arm axis (-y). Scaled in only while the game runs.
+        const orange = new THREE.MeshStandardMaterial({ color: 0xff7a3a, roughness: 0.4, metalness: 0.2 });
+        const mk = () => { const g = new THREE.Group(); hand.add(g); g.visible = false; g.scale.setScalar(0.001); return g; };
+        const pistol = mk();
+        add(pistol, new THREE.BoxGeometry(0.1, 0.42, 0.1), joint, 0, -0.3, 0); // barrel
+        add(pistol, new THREE.BoxGeometry(0.09, 0.18, 0.09), joint, 0, -0.08, -0.08); // grip
+        const laser = mk();
+        add(laser, new THREE.BoxGeometry(0.15, 0.5, 0.15), shell, 0, -0.32, 0);
+        add(laser, new THREE.SphereGeometry(0.07, 12, 8), glow, 0, -0.6, 0); // emitter
+        const rocket = mk();
+        add(rocket, new THREE.CylinderGeometry(0.13, 0.13, 0.6, 14), joint, 0, -0.35, 0);
+        const nose = add(rocket, new THREE.ConeGeometry(0.13, 0.22, 14), orange, 0, -0.76, 0);
+        nose.rotation.x = Math.PI; // cone tip points down the arm
+        guns = { pistol, laser, rocket };
+        muzzle = new THREE.Object3D();
+        hand.add(muzzle);
       }
       return a;
     });
@@ -191,14 +214,17 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     const look = { x: innerWidth / 2, y: innerHeight / 2 };
     const onMove = (e: PointerEvent) => { look.x = e.clientX; look.y = e.clientY; };
     addEventListener('pointermove', onMove, { passive: true });
-    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, torch: 0, squee: 0, visor: 0, armX: 0, armZ: 0.15, lean: 0, lx: 0, ly: 0 };
+    const cur = { tilt: 0, thrust: 0, yaw: 0.55, wave: 0, scrub: 0, mop: 0, torch: 0, squee: 0, visor: 0, armX: 0, armZ: 0.15, lean: 0, lx: 0, ly: 0, kick: 0, gun: 0, flip: 1, flipT: 1 };
     const gripV = new THREE.Vector3();
     const tipV = new THREE.Vector3();
+    const mzV = new THREE.Vector3();
     let raf = 0;
     let last = performance.now();
     let t = 0;
     let phaseT = 0; // seconds in the current action (drives the tug and throw cycle)
     let prevAct: Action = 'idle';
+    let lastShot = gameState.shots;
+    let shownGun: Gun = 'pistol'; // the gun that is scaling in or out
     const tick = (now: number) => {
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); // clamp >= 0: a negative first dt once blew up damp()
       last = now;
@@ -206,6 +232,28 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       const k = Math.min(1, dt * 6);
       const { tilt: tiltTo, thrust: thrustTo, facing: face, arrived: here, action: act, entering: enter, onHand: report } = input.current;
       if (act !== prevAct) { phaseT = 0; prevAct = act; }
+      const gunSel = gameState.gun;
+      const shooting = !!gunSel && !reduced;
+      if (gunSel) shownGun = gunSel;
+      if (gameState.shots !== lastShot) { lastShot = gameState.shots; cur.kick = 1; }
+      let aimPhi = 0; // right-arm angle that points the gun at the cursor, in the screen plane
+      if (shooting) {
+        const rr = el.getBoundingClientRect();
+        const ppu = rr.width / (2 * VIEW.w); // px per scene unit
+        const side = gameState.aim.x >= rr.left + rr.width / 2 ? 1 : -1; // mirror the robot toward the cursor
+        cur.flipT = side;
+        const sx = rr.left + rr.width / 2 + side * 0.41 * ppu; // shoulder, screen px
+        const sy = rr.top + (VIEW.t - 0.2) * ppu;
+        const bank = ship.rotation.z;
+        const dx = gameState.aim.x - sx;
+        const dyUp = -(gameState.aim.y - sy);
+        const vx = dx * Math.cos(bank) + dyUp * Math.sin(bank); // undo the ship's bank so the gun still points true
+        const vy = -dx * Math.sin(bank) + dyUp * Math.cos(bank);
+        aimPhi = Math.atan2(side * vx, -vy);
+      }
+      cur.flip += ((shooting ? cur.flipT : 1) - cur.flip) * Math.min(1, dt * 12);
+      cur.kick = Math.max(0, cur.kick - dt * 6);
+      cur.gun += ((shooting ? 1 : 0) - cur.gun) * Math.min(1, dt * 8);
       phaseT += dt;
       const repair = act === 'grab' || act === 'pull' || act === 'throw' || act === 'weld';
       const mopOn = act === 'wipe' && !reduced;
@@ -213,7 +261,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       cur.tilt += (tiltTo - cur.tilt) * k;
       cur.thrust += (thrustTo - cur.thrust) * k;
       // while flying in the robot faces the screen (yaw 0); at rest it turns to the usual facing. Same damping either way.
-      cur.yaw += ((repair || act === 'wipe' ? Math.PI : enter ? 0 : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth rotation, no jerks
+      cur.yaw += ((repair || act === 'wipe' ? Math.PI : enter ? 0 : shooting ? 0 : face * 0.6) - cur.yaw) * Math.min(1, dt * 3.2); // smooth rotation, no jerks
       cur.wave += ((here && !reduced ? 1 : 0) - cur.wave) * Math.min(1, dt * 5);
       cur.scrub += (((act === 'wipe' || repair) && !reduced ? 1 : 0) - cur.scrub) * Math.min(1, dt * 8);
       cur.mop += ((mopOn ? 1 : 0) - cur.mop) * Math.min(1, dt * 8);
@@ -227,6 +275,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       eyes.forEach((e, i) => e.position.set((i ? 0.13 : -0.13) + cur.lx * 0.1, -cur.ly * 0.05, 0.47));
 
       ship.rotation.y = cur.yaw;
+      ship.scale.x = Math.abs(cur.flip) < 0.08 ? 0.08 : cur.flip; // game: squash-flip to face the cursor side
       ship.rotation.z = -cur.tilt - face * cur.thrust * 0.2; // bank by tilt, lean forward while moving
       head.rotation.y = (reduced ? 0 : Math.sin(t * 1.3) * 0.5 * (1 - cur.thrust)) + cur.lx * 0.3;
       weldVisor.rotation.x = -Math.PI / 2 + cur.visor * (Math.PI / 2); // hinge at the forehead: flips down while welding
@@ -246,8 +295,10 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
         const release = Math.min(1, Math.max(0, (phaseT - 0.35) / 0.2)); // then swings through
         tgtX = -Math.PI / 2.2 - release * 1.0; tgtZ = 0.45 - windUp * 0.9 + release * 0.9; lean = windUp * 0.1 - release * 0.15;
       } else if (act === 'weld') { tgtX = -Math.PI / 2.4; tgtZ = 0.3; }
-      cur.armX += (tgtX - cur.armX) * Math.min(1, dt * 9);
-      cur.armZ += (tgtZ - cur.armZ) * Math.min(1, dt * 9);
+      else if (shooting) { tgtX = 0; tgtZ = aimPhi + cur.kick * 0.3; } // game: arm points at the cursor, recoil flicks it up
+      const armK = Math.min(1, dt * (shooting ? 24 : 9));
+      cur.armX += (tgtX - cur.armX) * armK;
+      cur.armZ += (tgtZ - cur.armZ) * armK;
       cur.lean += (lean - cur.lean) * Math.min(1, dt * 6);
       arms[1].rotation.x = cur.armX;
       arms[1].rotation.z = cur.armZ;
@@ -262,6 +313,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       torch.visible = cur.torch > 0.01;
       squeegee.scale.setScalar(Math.max(0.001, cur.squee));
       squeegee.visible = cur.squee > 0.01;
+      for (const k of GUNS) { const on = k === shownGun; guns[k].scale.setScalar(on ? Math.max(0.001, cur.gun * GUN_SCALE) : 0.001); guns[k].visible = on && cur.gun > 0.01; }
+      muzzle.position.y = MUZZLE_Y[shownGun];
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;
       for (const f of flames) {
@@ -269,6 +322,12 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       }
 
       renderer.render(scene, camera);
+      if (shooting) {
+        const rr = el.getBoundingClientRect();
+        muzzle.getWorldPosition(mzV).project(camera);
+        gameState.muzzle.x = rr.left + (mzV.x * 0.5 + 0.5) * rr.width;
+        gameState.muzzle.y = rr.top + (1 - (mzV.y * 0.5 + 0.5)) * rr.height;
+      }
       if (report) {
         // project the grip and torch tip into CSS px inside the robot box, so the parent can place DOM rock/sparks exactly there
         const w = el.clientWidth;

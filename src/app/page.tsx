@@ -11,6 +11,7 @@ import { Motion } from '@/components/ui/Motion';
 import { CvPreview } from '@/components/CvPreview';
 import { MessageForm } from '@/components/MessageForm';
 import { Meteor } from '@/components/space/Meteor';
+import { GameMode } from '@/components/GameMode';
 import { CONTACT_NUMBER, viberUrl } from '@/lib/contact';
 import '@/components/ui/ui.css';
 
@@ -60,6 +61,7 @@ export default function Home() {
       <main id="top" className="page">
         <SpaceScene />
         <Meteor />
+        <GameMode />
         <ScrollJourney />
         <section className="hero" aria-labelledby="hero-title">
           <div className="wrap">

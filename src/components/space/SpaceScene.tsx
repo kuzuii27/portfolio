@@ -6,6 +6,7 @@ import { PLANETS } from '@/lib/sceneConfig';
 import { planetPose, dimBehindCopy } from '@/lib/planetPath';
 import { boxAt, freeSpot, overlaps, visibleTextBoxes } from '@/lib/robotLane';
 import { patrol } from '@/lib/robotFlight';
+import { flightStep, gameState } from '@/lib/game';
 import { createPlanet, SUN_DIR, type PlanetHandle } from '@/components/space/Planet';
 import { createSkyObject } from '@/components/space/SkyObjects';
 import { Starfield } from '@/components/space/Starfield';
@@ -116,7 +117,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; bottom?: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; bottom?: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number }, init: false, fl: null as null | { x: number; y: number; vx: number; vy: number }, keys: new Set<string>(), enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -260,7 +261,18 @@ export function SpaceScene() {
           else if (job.phase === 'seal' && el > 400) { st.job = null; repRef.current = null; setRep(null); window.dispatchEvent(new Event('meteor:fixed')); }
         }
         if (!doc) st.facing = fixSide === 1 ? -1 : 1; // face the crack
+      } else if (gameState.gun) {
+        // game: the player flies the robot with W/A/S/D; the free lane and text avoidance are off
+        if (st.enter !== 'done') st.enter = 'done'; // no waiting for the entrance
+        const k = st.keys;
+        const dir = { x: (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0), y: (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0) };
+        st.fl = flightStep(st.fl ?? { x: st.bx, y: st.by, vx: 0, vy: 0 }, isReduced ? { x: 0, y: 0 } : dir, dt, { w: fr.w, h: fr.h, mx: bw / 2, my: bh / 2 });
+        spot = { x: st.fl.x, y: st.fl.y, free: true };
+        st.facing = gameState.aim.x >= st.bx ? 1 : -1;
+        st.tgt = null;
       } else {
+        st.fl = null; // leaving the game: the robot glides back to the lane
+        st.keys.clear();
         let sc = 1;
         let c = freeSpot({ x: wantX, y: wantY }, bw, bh, st.texts, fr.w, fr.h);
         if (!c.free) { sc = 0.6; c = freeSpot({ x: wantX, y: wantY }, bw * sc, bh * sc, st.texts, fr.w, fr.h); }
@@ -282,9 +294,9 @@ export function SpaceScene() {
       st.bs = damp(st.bs, scale, 6, dt);
       const px = st.bx;
       const working = st.job?.kind === 'wipe' && st.job.phase === 'work';
-      const dampRate = working ? 14 : fr.w < 768 && !st.job ? 0.9 : 3.2; // mobile free-roam: drift slowly; the mop must track the sweep
+      const dampRate = gameState.gun ? 40 : working ? 14 : fr.w < 768 && !st.job ? 0.9 : 3.2; // mobile free-roam: drift slowly; the mop must track the sweep
       // clamp each step so a big target change glides instead of jumping
-      const maxStep = isReduced ? Infinity : Math.min(600, fr.w) * dt;
+      const maxStep = isReduced || gameState.gun ? Infinity : Math.min(600, fr.w) * dt;
       const stepTo = (cur: number, to: number) => { const d = damp(cur, to, isReduced ? 60 : dampRate, dt) - cur; return cur + Math.max(-maxStep, Math.min(maxStep, d)); };
       st.bx = stepTo(st.bx, spot.x);
       st.by = stepTo(st.by, spot.y);
@@ -362,6 +374,7 @@ export function SpaceScene() {
     };
     const onHit = (e: Event) => {
       const d = (e as CustomEvent<{ x: number; y: number; pts: { x: number; y: number }[] }>).detail;
+      if (gameState.gun) return; // no repair during the game: the crack clears itself after 30 s
       if (st.enter !== 'done') { held = d; return; }
       startFix(d);
     };
@@ -376,7 +389,7 @@ export function SpaceScene() {
       const sel = window.getSelection();
       const text = sel?.toString().trim() ?? '';
       if (st.job?.kind === 'wipe' && st.job.phase === 'go' && !text) { st.job = null; setMark(null); return; } // pick cleared before the robot arrived
-      if (isReduced || !text || st.job) return;
+      if (isReduced || !text || st.job || gameState.gun) return;
       selTimer = window.setTimeout(() => {
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0 || sel.toString().trim() !== text || st.job) return;
@@ -397,6 +410,20 @@ export function SpaceScene() {
     };
     document.addEventListener('selectionchange', onSel);
 
+    // game mode (GameMode.tsx): W/A/S/D and arrows fly the robot; the keys are held here, the flight runs in moveBot
+    const GAME_KEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+    const onKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (!gameState.gun || !GAME_KEYS.includes(k) || e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault(); // arrows must not scroll the page while flying
+      st.keys.add(k);
+    };
+    const onKeyUp = (e: KeyboardEvent) => { st.keys.delete(e.key.toLowerCase()); };
+    const onBlur = () => st.keys.clear();
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
@@ -404,6 +431,9 @@ export function SpaceScene() {
       window.removeEventListener('loader:done', startEntrance);
       clearTimeout(safety);
       document.removeEventListener('selectionchange', onSel);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
       clearTimeout(selTimer);
       planets.forEach((h) => h.dispose());
       sky.dispose();
