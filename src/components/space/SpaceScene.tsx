@@ -7,9 +7,6 @@ import { planetPose, dimBehindCopy } from '@/lib/planetPath';
 import { boxAt, freeSpot, overlaps, visibleTextBoxes } from '@/lib/robotLane';
 import { patrol } from '@/lib/robotFlight';
 import { gameState } from '@/lib/game';
-import { newPlayer, step as platStep, type Input, type Player, type Platform } from '@/lib/platformer';
-import { platformsFromRects } from '@/lib/platforms';
-import { pageRects } from '@/components/game/world';
 import { createPlanet, SUN_DIR, type PlanetHandle } from '@/components/space/Planet';
 import { createSkyObject } from '@/components/space/SkyObjects';
 import { Starfield } from '@/components/space/Starfield';
@@ -40,6 +37,7 @@ const syncH = () => {
 const rh = () => stableH || window.innerHeight;
 const damp = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
 type Pt = { x: number; y: number };
+const FLY_SPEED = 420; // px/s while flying in the game
 type Rep = { grip: Pt; tip: Pt; torch: number; stage: 'hold' | 'thrown' | 'weld' | 'seal'; rel?: Pt; dir?: number; rock?: Rock };
 
 /** Repair overlay: the held rock, the thrown rock, the torch-tip arc + sparks, and the seam weld bead. Page px. */
@@ -124,7 +122,7 @@ export function SpaceScene() {
 
     // smoothed state: focus f follows scroll, scroll speed drives spin, robot position follows the free lane
     const f0 = pLive.current * (N - 1);
-    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; bottom?: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number; rock?: Rock }, init: false, pl: null as null | Player, jp: false, plats: [] as Platform[], platsAt: 0, keys: new Set<string>(), enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
+    const st = { f: f0, speed: 0, lastF: f0, bx: 0, by: 0, bs: 1, bt: 0, anchor: { x: 0, y: 0, l: 0 }, fly: 0, pby: 0, facing: 1 as 1 | -1, left: false, leftSpot: null as null | { x: number; y: number }, tap: 0, job: null as null | { kind: 'wipe' | 'fix'; phase: 'go' | 'grab' | 'pull' | 'throw' | 'weld' | 'work' | 'seal'; x: number; y: number; w: number; h: number; lh: number; bottom?: number; prog: number; t0: number; pts: { x: number; y: number }[]; ms: number; rel?: { x: number; y: number }; dir?: number; rock?: Rock }, init: false, pl: null as null | { x: number; y: number; vx: number; vy: number }, keys: new Set<string>(), enter: 'wait' as 'wait' | 'fly' | 'done', enterAt: 0, tgt: null as null | { x: number; y: number; sc: number; free: boolean }, tgtAt: 0, op: 1, anchored: false, copyRight: 0, texts: [] as ReturnType<typeof visibleTextBoxes>, textsAt: 0, mob: null as null | { x: number; y: number }, mobAt: 0 };
     const place = (dt: number) => {
       const fr = { w: vw(), h: vh() };
       const target = pLive.current * (N - 1);
@@ -269,32 +267,27 @@ export function SpaceScene() {
         }
         if (!doc) st.facing = fixSide === 1 ? -1 : 1; // face the crack
       } else if (gameState.gun) {
-        // game: platformer. The player lives in DOCUMENT px; text lines, buttons and blocks are the ground; the page scrolls to follow.
+        // game: the robot always flies. W/A/S/D (or arrows) set a velocity. The player lives in DOCUMENT px and the page scrolls to follow.
         if (st.enter !== 'done') st.enter = 'done'; // no waiting for the entrance
-        const ppu = bw / 2.4; // px per scene unit: the robot's feet sit 0.31 units below its box centre
-        const footDy = 0.31 * ppu;
         const docH = document.documentElement.scrollHeight;
-        if (!st.pl) { st.pl = newPlayer(st.bx, st.by + footDy + scrollY); st.platsAt = 0; }
-        if (now - st.platsAt > 120) {
-          const around = vh() * 1.5;
-          st.plats = [...platformsFromRects(pageRects(st.pl.y - around, st.pl.y + around), fr.w, docH), { l: -1e5, r: 1e5, t: docH - 70 }]; // last: the page floor
-          st.platsAt = now;
-        }
+        if (!st.pl) st.pl = { x: st.bx, y: st.by + scrollY, vx: 0, vy: 0 };
         const k = st.keys;
-        const inp: Input = { dir: ((k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0)) as -1 | 0 | 1, jump: k.has('w') || k.has('arrowup') || k.has(' '), jumpPressed: st.jp, down: k.has('s') || k.has('arrowdown') };
-        st.jp = false;
-        let pl = platStep(st.pl, inp, st.plats, dt);
-        if (pl.x < 40 || pl.x > fr.w - 40) pl = { ...pl, x: Math.max(40, Math.min(fr.w - 40, pl.x)), vx: 0 };
-        if (pl.y < 140) pl = { ...pl, y: 140, vy: Math.max(0, pl.vy) }; // ceiling: the top of the page
-        st.pl = pl;
-        // camera: keep the feet inside the middle band of the screen
+        const ax = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
+        const ay = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0);
+        const n = ax && ay ? Math.SQRT1_2 : 1; // diagonals are not faster
+        const pl = st.pl;
+        pl.vx = damp(pl.vx, ax * n * FLY_SPEED, 8, dt);
+        pl.vy = damp(pl.vy, ay * n * FLY_SPEED, 8, dt);
+        pl.x = Math.max(40, Math.min(fr.w - 40, pl.x + pl.vx * dt));
+        pl.y = Math.max(140, Math.min(docH - 70, pl.y + pl.vy * dt)); // top of the page to just above its floor
+        // camera: keep the robot inside the middle band of the screen
         const sy = scrollY;
         const lo = vh() * 0.3;
         const hi = vh() * 0.7;
-        const feet = pl.y - sy;
-        const want = Math.max(0, Math.min(docH - vh(), feet < lo ? pl.y - lo : feet > hi ? pl.y - hi : sy));
+        const at = pl.y - sy;
+        const want = Math.max(0, Math.min(docH - vh(), at < lo ? pl.y - lo : at > hi ? pl.y - hi : sy));
         if (Math.abs(want - sy) > 0.5) window.scrollTo({ top: sy + (want - sy) * Math.min(1, dt * 8), behavior: 'instant' });
-        spot = { x: pl.x, y: pl.y - scrollY - footDy, free: true };
+        spot = { x: pl.x, y: pl.y - scrollY, free: true };
         st.facing = gameState.aim.x >= st.bx ? 1 : -1;
         st.tgt = null;
       } else {
@@ -355,7 +348,7 @@ export function SpaceScene() {
       if (now - poseAt > 80) { // robot props change slowly: throttle React updates
         poseAt = now;
         const arrived = Math.abs(st.f - Math.round(st.f)) < 0.06 && st.fly < 0.25 && !st.job;
-        const thrust = gameState.gun && st.pl ? (st.pl.onGround ? 0.05 : st.pl.jumps >= 2 && st.pl.vy < 0 ? 1 : 0.25) : 0.4 + Math.min(0.6, st.fly * 1.2 + st.speed * 1.5);
+        const thrust = gameState.gun && st.pl ? 0.45 + Math.min(0.55, Math.hypot(st.pl.vx, st.pl.vy) / FLY_SPEED) : 0.4 + Math.min(0.6, st.fly * 1.2 + st.speed * 1.5);
         const entering = st.enter !== 'done';
         const action: Action = !st.job ? 'idle' : st.job.kind === 'wipe' ? (st.job.phase === 'work' ? 'wipe' : 'idle') : st.job.phase === 'grab' || st.job.phase === 'pull' || st.job.phase === 'throw' || st.job.phase === 'weld' ? st.job.phase : 'idle';
         setPose((o) => (Math.abs(o.tilt - st.bt) < 0.02 && o.arrived === arrived && o.action === action && o.entering === entering && o.facing === st.facing && Math.abs(o.thrust - thrust) < 0.04 ? o : { tilt: st.bt, thrust, facing: st.facing, arrived, action, entering }));
@@ -437,13 +430,12 @@ export function SpaceScene() {
     };
     document.addEventListener('selectionchange', onSel);
 
-    // game mode (GameMode.tsx): W/A/S/D and arrows fly the robot; the keys are held here, the flight runs in moveBot
+    // game mode (GameMode.tsx): W/A/S/D and arrows fly the robot; the keys are held here, the flight runs in moveBot. Space is swallowed so it cannot scroll or press a button.
     const GAME_KEYS = ['w', 'a', 's', 'd', ' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (!gameState.gun || !GAME_KEYS.includes(k) || e.ctrlKey || e.metaKey || e.altKey) return;
       e.preventDefault(); // arrows and space must not scroll the page or press a focused button
-      if (!st.keys.has(k) && (k === 'w' || k === ' ' || k === 'arrowup')) st.jp = true; // a fresh press, not auto-repeat
       st.keys.add(k);
     };
     const onKeyUp = (e: KeyboardEvent) => { if (gameState.gun && e.key === ' ') e.preventDefault(); st.keys.delete(e.key.toLowerCase()); };
