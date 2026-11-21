@@ -13,7 +13,7 @@ export type CrashOpts = { onImpact?: () => void; onPeak?: () => void; onDone?: (
 export function playCrash(o: CrashOpts = {}) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { o.onPeak?.(); o.onDone?.(); return; }
   const r = makeRock();
-  const { d } = makeCracks();
+  const { d } = makeCracks({ ...r, size: 80 }); // 80 svg units is this rock's size on screen
   const wrap = document.createElement('div');
   wrap.className = 'game-crash';
   wrap.dataset.gameUi = '1'; // blocks clicks and is never a target while it plays

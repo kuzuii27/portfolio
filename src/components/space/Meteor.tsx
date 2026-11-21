@@ -9,7 +9,7 @@ const GIVE_UP_MS = 30_000; // if the robot never shows up to fix it (no WebGL), 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const gaming = () => !!document.documentElement.dataset.game;
 
-export type Rock = { size: number; clip: string; fill: string };
+export type Rock = { size: number; clip: string; fill: string; poly: { x: number; y: number }[] }; // poly: corners as fractions of size around the centre (-0.5..0.5)
 const FILLS = [
   'radial-gradient(circle at 35% 30%,#d9b48a,#8a5a34 55%,#3b2412)', // stone
   'radial-gradient(circle at 35% 30%,#cfe9ff,#5f8fb8 55%,#1f3550)', // ice
@@ -19,12 +19,13 @@ const FILLS = [
 /** A random jagged rock: 7-10 corners at uneven distances, random size and material. */
 export function makeRock(): Rock {
   const n = 7 + Math.floor(Math.random() * 4);
-  const pts = Array.from({ length: n }, (_, i) => {
+  const poly = Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2 + rnd(-0.2, 0.2);
-    const r = rnd(30, 50);
-    return `${(50 + Math.cos(a) * r).toFixed(1)}% ${(50 + Math.sin(a) * r).toFixed(1)}%`;
+    const r = rnd(0.3, 0.5);
+    return { x: Math.cos(a) * r, y: Math.sin(a) * r };
   });
-  return { size: rnd(26, 64), clip: `polygon(${pts.join(',')})`, fill: FILLS[Math.floor(Math.random() * FILLS.length)] };
+  const clip = `polygon(${poly.map((p) => `${(50 + p.x * 100).toFixed(1)}% ${(50 + p.y * 100).toFixed(1)}%`).join(',')})`;
+  return { size: rnd(26, 64), clip, fill: FILLS[Math.floor(Math.random() * FILLS.length)], poly };
 }
 // wrapper carries the glow (a filter would be clipped by the polygon), the inner span carries the shape
 export const RockShape = ({ r, x, y, cls = '', style }: { r: Rock; x: number; y: number; cls?: string; style?: CSSProperties }) => (
@@ -33,22 +34,28 @@ export const RockShape = ({ r, x, y, cls = '', style }: { r: Rock; x: number; y:
   </span>
 );
 
-/** Radial cracks, one kinked segment and one branch each, in SVG units around the impact point. Also returns sample points along the main segments for the torch to trace. */
-export function makeCracks() {
-  const n = 8 + Math.floor(Math.random() * 4);
+/** The rock's own outline as an SVG path (the hole it leaves), in SVG units around the impact point. */
+export const holePath = (r: Rock) => `M${r.poly.map((p) => `${(p.x * r.size).toFixed(1)} ${(p.y * r.size).toFixed(1)}`).join('L')}Z`;
+
+/** One kinked crack with a branch from each corner of the rock, running straight out from that corner; bigger rocks make longer cracks. Also returns sample points along the main segments for the torch to trace. */
+export function makeCracks(r: Rock) {
   let d = '';
   const pts: { x: number; y: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + rnd(-0.25, 0.25);
-    const len = rnd(70, 190);
+  for (const c of r.poly) {
+    const sx = c.x * r.size;
+    const sy = c.y * r.size;
+    const a = Math.atan2(c.y, c.x) + rnd(-0.12, 0.12);
+    const len = Math.min(210, r.size * rnd(1.8, 3.4) + 20);
     const k = a + rnd(-0.15, 0.15);
-    const mx = Math.cos(k) * len * 0.55;
-    const my = Math.sin(k) * len * 0.55;
-    d += `M0 0L${mx.toFixed(0)} ${my.toFixed(0)}L${(Math.cos(a) * len).toFixed(0)} ${(Math.sin(a) * len).toFixed(0)}`;
-    const b = a + rnd(0.5, 0.9) * (i % 2 ? 1 : -1);
-    d += `M${mx.toFixed(0)} ${my.toFixed(0)}l${(Math.cos(b) * len * 0.35).toFixed(0)} ${(Math.sin(b) * len * 0.35).toFixed(0)}`;
+    const mx = sx + Math.cos(k) * len * 0.55;
+    const my = sy + Math.sin(k) * len * 0.55;
+    const ex = sx + Math.cos(a) * len;
+    const ey = sy + Math.sin(a) * len;
+    d += `M${sx.toFixed(0)} ${sy.toFixed(0)}L${mx.toFixed(0)} ${my.toFixed(0)}L${ex.toFixed(0)} ${ey.toFixed(0)}`;
+    const br = a + rnd(0.5, 0.9) * (Math.random() < 0.5 ? 1 : -1);
+    d += `M${mx.toFixed(0)} ${my.toFixed(0)}l${(Math.cos(br) * len * 0.35).toFixed(0)} ${(Math.sin(br) * len * 0.35).toFixed(0)}`;
     // a point mid-way along each main segment, so the torch walks the real crack lines out from the hole
-    pts.push({ x: mx * 0.5 + Math.cos(a) * len * 0.25, y: my * 0.5 + Math.sin(a) * len * 0.25 });
+    pts.push({ x: (sx + mx) / 2 * 0.5 + (mx + ex) / 2 * 0.5, y: (sy + my) / 2 * 0.5 + (my + ey) / 2 * 0.5 });
   }
   return { d, pts };
 }
@@ -110,8 +117,8 @@ export function Meteor() {
 
   const land = () => {
     if (!fly) return;
-    const { d, pts } = makeCracks();
     const r = fly.r;
+    const { d, pts } = makeCracks(r);
     if (gaming()) {
       setKept((k) => [...k.slice(-7), { id: ++uid.current, x: fly.x, y: fly.y, d, r }]); // at most 8 craters
       setFly(null);
@@ -141,7 +148,7 @@ export function Meteor() {
             <path className="crack-dark" d={rock.d} />
             <path className="crack-lite" d={rock.d} />
             <path className="crack-bead" d={rock.d} pathLength={1000} />
-            <circle r="16" className="crack-hole" />
+            <path d={holePath(rock.r)} className="crack-hole" />
           </svg>
           {stage === 'stuck' && <RockShape r={rock.r} x={rock.x} y={rock.y} />}
         </>
@@ -151,7 +158,7 @@ export function Meteor() {
           <svg className="crack" style={{ left: k.x - 220, top: k.y - 220 }} viewBox="-220 -220 440 440" width="440" height="440" aria-hidden="true">
             <path className="crack-dark" d={k.d} />
             <path className="crack-lite" d={k.d} />
-            <circle r="16" className="crack-hole" />
+            <path d={holePath(k.r)} className="crack-hole" />
           </svg>
           <RockShape r={k.r} x={k.x} y={k.y} />
         </span>
