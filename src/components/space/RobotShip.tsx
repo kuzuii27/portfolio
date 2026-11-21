@@ -25,6 +25,9 @@ const MODEL = '/models/robot.glb';
 const GUN_SCALE = 1.5; // game guns are drawn bigger than the tools so they read at a glance
 /** Barrel tip in hand space (before GUN_SCALE is applied elsewhere): where shots leave from. */
 const MUZZLE_Y: Record<Gun, number> = { pistol: -0.86, smg: -1.12, shotgun: -1.46, laser: -1.04, rocket: -1.3, flame: -1.2, bomb: -1.19 };
+/** How hard each gun kicks the arm and pushes the body back (1 = rocket). */
+const RECOIL: Record<Gun, number> = { pistol: 0.3, smg: 0.15, shotgun: 0.9, laser: 0.7, rocket: 1, flame: 0.05, bomb: 0.6 };
+const SWAP_S = 0.3; // switching guns: the arm lowers, the gun swaps at the bottom, the arm raises again
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
 /** Where the cloth lands while mopping (robot turned away), as a fraction of the robot box from its centre. Derived from the arm/mop geometry below. */
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
@@ -244,6 +247,8 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
     let prevAct: Action = 'idle';
     let lastShot = gameState.shots;
     let shownGun: Gun = 'pistol'; // the gun that is scaling in or out
+    let wantGun: Gun | null = null; // the selected gun; shownGun catches up at the bottom of the switch dip
+    let swapT = 1; // seconds since the gun was changed
     const tick = (now: number) => {
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); // clamp >= 0: a negative first dt once blew up damp()
       last = now;
@@ -253,9 +258,13 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       if (act !== prevAct) { phaseT = 0; prevAct = act; }
       const gunSel = gameState.gun;
       const shooting = !!gunSel && !reduced;
-      if (gunSel) shownGun = gunSel;
+      if (!gunSel) wantGun = null;
+      else if (gunSel !== wantGun) { if (wantGun) swapT = 0; else shownGun = gunSel; wantGun = gunSel; } // the first pick shows at once; a change dips
+      swapT += dt;
+      if (wantGun && swapT >= SWAP_S / 2) shownGun = wantGun;
+      const dip = swapT < SWAP_S ? Math.abs(swapT - SWAP_S / 2) / (SWAP_S / 2) : 1; // 1 = gun up, 0 = lowered
       if (gameState.shots !== lastShot) { lastShot = gameState.shots; cur.kick = 1; }
-      const wantK = shooting ? 2 : 1;
+      const wantK = shooting || (act === 'wipe' && !reduced) ? 2 : 1; // the raised squeegee reaches past the normal canvas edge and was cut off
       if (wantK !== kWide) { kWide = wantK; el.classList.toggle('robot-wide', kWide === 2); resize(); }
       let aimPhi = 0; // right-arm angle that points the gun at the cursor, in the screen plane
       if (shooting) {
@@ -312,7 +321,7 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
         const release = Math.min(1, Math.max(0, (phaseT - 0.35) / 0.2)); // then swings through
         tgtX = -Math.PI / 2.2 - release * 1.0; tgtZ = 0.45 - windUp * 0.9 + release * 0.9; lean = windUp * 0.1 - release * 0.15;
       } else if (act === 'weld') { tgtX = -Math.PI / 2.4; tgtZ = 0.3; }
-      else if (shooting) { tgtX = 0; tgtZ = aimPhi + cur.kick * 0.3; } // game: arm points at the cursor, recoil flicks it up
+      else if (shooting) { tgtX = 0; tgtZ = aimPhi * dip + 0.15 * (1 - dip) + cur.kick * 0.3 * RECOIL[shownGun]; } // game: arm points at the cursor, recoil flicks it up
       const armK = Math.min(1, dt * (shooting ? 24 : 9));
       cur.armX += (tgtX - cur.armX) * armK;
       cur.armZ += (tgtZ - cur.armZ) * armK;
@@ -331,10 +340,11 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
       squeegee.scale.setScalar(Math.max(0.001, cur.squee));
       squeegee.visible = cur.squee > 0.01;
       for (const h of [0, 1]) {
-        for (const k of GUNS) { const on = k === shownGun && h === work; gunSets[h][k].scale.setScalar(on ? Math.max(0.001, cur.gun * GUN_SCALE) : 0.001); gunSets[h][k].visible = on && cur.gun > 0.01; }
+        for (const k of GUNS) { const on = k === shownGun && h === work; gunSets[h][k].scale.setScalar(on ? Math.max(0.001, cur.gun * dip * GUN_SCALE) : 0.001); gunSets[h][k].visible = on && cur.gun > 0.01; }
         muzzles[h].position.y = MUZZLE_Y[shownGun];
       }
       body.position.y = reduced ? 0 : Math.sin(t * 1.8) * 0.05; // idle bob
+      body.position.x = -cur.flipT * cur.kick * RECOIL[shownGun] * 0.12; // the shot pushes the body back, away from the target
       const flick = reduced ? 1 : 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.05;
       for (const f of flames) {
         f.scale.set(0.8 + cur.thrust * 0.4, (0.05 + cur.thrust * 1.3) * flick, 0.8 + cur.thrust * 0.4);
