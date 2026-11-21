@@ -24,7 +24,7 @@ type Props = {
 const MODEL = '/models/robot.glb';
 const GUN_SCALE = 1.5; // game guns are drawn bigger than the tools so they read at a glance
 /** Barrel tip in hand space (before GUN_SCALE is applied elsewhere): where shots leave from. */
-const MUZZLE_Y: Record<Gun, number> = { pistol: -0.86, smg: -1.12, shotgun: -1.46, laser: -1.04, rocket: -1.3 };
+const MUZZLE_Y: Record<Gun, number> = { pistol: -0.86, smg: -1.12, shotgun: -1.46, laser: -1.04, rocket: -1.3, flame: -1.2, bomb: -1.19 };
 const VIEW = { w: 1.2, t: 1.4, b: -1.9 }; // half width and vertical extent; the flame hangs below the feet
 /** Where the cloth lands while mopping (robot turned away), as a fraction of the robot box from its centre. Derived from the arm/mop geometry below. */
 export const MOP_HEAD = { dx: -0.17, dy: 0.36 };
@@ -174,7 +174,16 @@ export function RobotShip({ tilt, thrust, facing = 1, arrived = false, action = 
         add(shotgun, new THREE.CylinderGeometry(0.04, 0.04, 0.6, 10), shell, 0.09, -0.4, 0); // pump tube
         add(shotgun, new THREE.BoxGeometry(0.14, 0.25, 0.14), rubber, 0, -0.18, 0); // receiver
         add(shotgun, new THREE.BoxGeometry(0.1, 0.3, 0.1), wood, 0, 0.1, 0); // stock
-        guns = { pistol, smg, shotgun, laser, rocket };
+        const flame = mk();
+        add(flame, new THREE.CylinderGeometry(0.07, 0.07, 0.55, 12), joint, 0, -0.32, 0); // pipe
+        add(flame, new THREE.CylinderGeometry(0.12, 0.12, 0.36, 12), orange, 0.14, -0.2, 0); // fuel tank on the side
+        add(flame, new THREE.ConeGeometry(0.07, 0.2, 12), orange, 0, -0.68, 0).rotation.x = Math.PI; // nozzle, tip down the arm
+        add(flame, new THREE.SphereGeometry(0.035, 10, 8), tipMat, 0, -0.8, 0); // pilot light
+        const bomb = mk();
+        add(bomb, new THREE.CylinderGeometry(0.17, 0.17, 0.55, 16), rubber, 0, -0.35, 0); // fat launcher tube
+        add(bomb, new THREE.CylinderGeometry(0.19, 0.19, 0.08, 16), glow, 0, -0.6, 0); // glowing ring
+        add(bomb, new THREE.CylinderGeometry(0.2, 0.2, 0.14, 16), joint, 0, -0.72, 0); // wide muzzle
+        guns = { pistol, smg, shotgun, laser, rocket, flame, bomb };
         muzzle = new THREE.Object3D();
         hand.add(muzzle);
       }

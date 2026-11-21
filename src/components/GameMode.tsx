@@ -3,15 +3,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BREAKABLE, alongLine, extendToEdge, gameState, isGameUi } from '@/lib/game';
-import { GRENADE_COOLDOWN, GUNS, WEAPONS, gunFromKey, nextWeapon, spreadAngles, type Gun } from '@/lib/weapons';
+import { BOMBLETS, GRENADE_COOLDOWN, GUNS, WEAPONS, bombletTargets, gunFromKey, nextWeapon, spreadAngles, type Gun } from '@/lib/weapons';
 import { createFx } from '@/components/game/fx';
 import { createDamage } from '@/components/game/damage';
 
 type Snd = Gun | 'grenade';
 
 let ctx: AudioContext | null = null;
+let muted = false; // the pause menu's Sound switch
 /** Zero-dependency Web Audio synth. A sound failure never blocks the game. */
 function sound(gun: Snd, phase: 'fire' | 'hit') {
+  if (muted) return;
   try {
     ctx ??= new AudioContext();
     const c = ctx;
@@ -45,6 +47,8 @@ function sound(gun: Snd, phase: 'fire' | 'hit') {
       else if (gun === 'shotgun') { noise(0.3, 0.7); tone('sawtooth', 110, 40, 0.3, 0.3); }
       else if (gun === 'laser') { tone('sawtooth', 1800, 160, 0.3, 0.18); tone('sine', 900, 120, 0.3, 0.2); }
       else if (gun === 'rocket') { noise(0.5, 0.25); tone('sawtooth', 160, 60, 0.5, 0.15); }
+      else if (gun === 'flame') noise(0.08, 0.12);
+      else if (gun === 'bomb') tone('sine', 300, 700, 0.25, 0.15); // pop as it leaves
       else tone('sine', 500, 200, 0.15, 0.12); // grenade throw
     } else if (gun === 'pistol' || gun === 'smg') noise(0.06, 0.3);
     else if (gun === 'shotgun') noise(0.1, 0.3);
@@ -79,6 +83,8 @@ export function GameMode() {
   const [gun, setGun] = useState<Gun | null>(null);
   const playing = gun !== null;
   const [meter, setMeter] = useState(0); // % destroyed
+  const [paused, setPaused] = useState(false); // the Esc menu; the game keeps running behind it
+  const [soundOn, setSoundOn] = useState(true);
   const [done, setDone] = useState(false); // the "portfolio destroyed" screen
   const restartRef = useRef<() => void>(() => {});
 
@@ -126,7 +132,7 @@ export function GameMode() {
       fx.ring(x, y, radius * 1.4, '#ffb347');
       fx.spark(x, y, Math.round(radius * 0.4), { speed: 720 });
       fx.smoke(x, y, 14, 30);
-      fx.shake();
+      if (radius >= 100) fx.shake(); // bomblets are too small to shake the page
       const pts = [{ x, y }];
       for (const [f, n] of [[0.55, 6], [1, 12]] as const) for (let i = 0; i < n; i++) pts.push({ x: x + Math.cos((i / n) * Math.PI * 2) * radius * f, y: y + Math.sin((i / n) * Math.PI * 2) * radius * f });
       hitAll(pts, cap).forEach((h) => damage.hit(h.t, { x, y }, { radius, dmg, power: 700 }));
@@ -144,6 +150,7 @@ export function GameMode() {
 
     let last = 0;
     let lastGrenade = 0;
+    let flameTick = 0;
     const fire = (x: number, y: number) => {
       const g = gameState.gun;
       if (!g) return;
@@ -154,8 +161,8 @@ export function GameMode() {
       const from = muzzle();
       const ang = Math.atan2(y - from.y, x - from.x);
       const dist = Math.max(60, Math.hypot(x - from.x, y - from.y));
-      gameState.shots++;
-      sound(g, 'fire');
+      if (g !== 'flame') gameState.shots++; // a steady stream of fire must not make the arm jitter
+      if (g !== 'flame' || flameTick % 4 === 0) sound(g, 'fire');
       if (g === 'pistol' || g === 'smg') {
         fx.spark(from.x, from.y, g === 'smg' ? 3 : 6, { angle: ang, spread: 0.5, speed: 300 });
         fx.flash(from.x, from.y, g === 'smg' ? 18 : 28, 'rgba(255,220,140,.9)');
@@ -173,6 +180,27 @@ export function GameMode() {
           fx.spark(h.x, h.y, 12, { color: '#9be7ff', speed: 460 });
           damage.hit(h.t, h, { radius: 20, dmg: 3, power: 380 });
         }, 60 + i * 45));
+      } else if (g === 'flame') {
+        const a2 = ang + (Math.random() - 0.5) * w.spread;
+        const reach = Math.min(w.range ?? 240, dist);
+        fx.flame(from.x, from.y, a2);
+        if (flameTick++ % 2 === 0) {
+          for (const f of [0.35, 0.7, 1]) { // the stream sets fire to whatever it reaches
+            const px = from.x + Math.cos(a2) * reach * f;
+            const py = from.y + Math.sin(a2) * reach * f;
+            const t = pickAt(px, py, damage.proxyFor);
+            if (t) damage.burn(t, { x: px, y: py });
+          }
+        }
+      } else if (g === 'bomb') {
+        // Too Much: a parachute bomb drifts down onto the cursor, then splits into bomblets that scatter and blow
+        fx.flash(from.x, from.y, 44, 'rgba(255,120,200,.9)');
+        fx.lob(from.x, from.y, x, y, () => {
+          fx.flash(x, y, 60, 'rgba(255,120,200,.9)');
+          bombletTargets(x, y, BOMBLETS, 160).forEach((s, i) => later(() => {
+            fx.lob(x, y, s.x, s.y, () => boom(s.x, s.y, 55, 3, 'shotgun', 2.5), { fuse: 0.15, dur: 0.4, h: 70, small: true });
+          }, i * 40));
+        }, { chute: true, fuse: 0.05, dur: 1.5, h: 200 });
       } else {
         fx.flash(from.x, from.y, 40, 'rgba(255,170,90,.9)');
         fx.spark(from.x, from.y, 8, { angle: ang + Math.PI, spread: 0.8, speed: 260, color: '#ff9a3a' });
@@ -219,7 +247,7 @@ export function GameMode() {
       setGun((g) => (g ? nextWeapon(g, e.deltaY > 0 ? 1 : -1) : g));
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setGun(null); setOpen(false); return; }
+      if (e.key === 'Escape') { setPaused((p) => !p); return; }
       const g = gunFromKey(e.key);
       if (g) setGun(g);
     };
@@ -246,10 +274,11 @@ export function GameMode() {
       clearInterval(auto);
       timers.forEach(clearTimeout);
       restartRef.current = () => {};
-      damage.restore();
+      damage.dispose();
       fx.dispose(); // also restores everything the shatter effect hid
       setMeter(0);
       setDone(false);
+      setPaused(false);
       gameState.gun = null;
       delete root.dataset.game;
       window.dispatchEvent(new Event('game:end'));
@@ -258,6 +287,7 @@ export function GameMode() {
 
   if (!ok) return null;
   const exit = () => { setGun(null); setOpen(false); };
+  const toggleSound = () => { muted = !muted; setSoundOn(!muted); };
   const pick = (g: Gun) => { setGun(g); setOpen(false); };
   return (
     <>
@@ -275,8 +305,23 @@ export function GameMode() {
               <span>Destroyed {meter}%</span>
             </div>
           )}
-          {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG) · right-click grenade · 1-5 or wheel weapon · Esc exit</span>}
+          {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG and Flame) · right-click grenade · 1-7 or wheel weapon · Esc menu</span>}
           <button className="btn btn-primary" onClick={exit}>{playing ? 'Exit game' : 'Cancel'}</button>
+        </div>,
+        document.body,
+      )}
+      {playing && paused && createPortal(
+        <div className="game-over" data-game-ui>
+          <div>
+            <h2>Paused</h2>
+            <p>The game keeps running while this menu is open.</p>
+            <div>
+              <button className="btn btn-primary" onClick={() => setPaused(false)}>Resume</button>
+              <button className="btn btn-ghost" onClick={() => { restartRef.current(); setPaused(false); }}>Restart site</button>
+              <button className="btn btn-ghost" onClick={toggleSound}>Sound: {soundOn ? 'on' : 'off'}</button>
+              <button className="btn btn-ghost" onClick={exit}>Exit game</button>
+            </div>
+          </div>
         </div>,
         document.body,
       )}

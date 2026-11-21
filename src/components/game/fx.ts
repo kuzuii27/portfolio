@@ -7,7 +7,8 @@ type Part = { x: number; y: number; vx: number; vy: number; life: number; max: n
 type Beam = { x0: number; y0: number; x1: number; y1: number; life: number; max: number; color: string };
 type Ring = { x: number; y: number; r: number; life: number; max: number; color: string };
 type Proj = { x: number; y: number; tx: number; ty: number; speed: number; accel: number; kind: 'bullet' | 'rocket'; ang: number; onHit: () => void };
-type Lob = { x0: number; y0: number; tx: number; ty: number; t: number; dur: number; h: number; fuse: number; blink: number; onHit: () => void; x: number; y: number };
+type Lob = { x0: number; y0: number; tx: number; ty: number; t: number; dur: number; h: number; fuse: number; blink: number; onHit: () => void; x: number; y: number; chute: boolean; small: boolean };
+export type LobOpts = { chute?: boolean; fuse?: number; dur?: number; h?: number; small?: boolean };
 type ShardNode = { el: HTMLElement; x: number; y: number; vx: number; vy: number; rot: number; vr: number; life: number; max: number };
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
@@ -88,9 +89,20 @@ export function createFx() {
   }
 
   /** Lob a grenade from (x0,y0) onto (tx,ty): flies an arc, sits there blinking for the fuse, then onHit runs. */
-  function lob(x0: number, y0: number, tx: number, ty: number, onHit: () => void) {
+  function lob(x0: number, y0: number, tx: number, ty: number, onHit: () => void, o: LobOpts = {}) {
     const dist = Math.hypot(tx - x0, ty - y0);
-    lobs.push({ x0, y0, tx, ty, t: 0, dur: Math.min(0.9, 0.35 + dist / 1400), h: Math.min(260, 60 + dist * 0.25), fuse: 0.5, blink: 0, onHit, x: x0, y: y0 });
+    lobs.push({ x0, y0, tx, ty, t: 0, dur: o.dur ?? Math.min(0.9, 0.35 + dist / 1400), h: o.h ?? Math.min(260, 60 + dist * 0.25), fuse: o.fuse ?? 0.5, blink: 0, onHit, x: x0, y: y0, chute: !!o.chute, small: !!o.small });
+    kick();
+  }
+
+  /** A burst of fire from the muzzle along `ang`: a few glowing blobs that rise a little and fade fast. */
+  function flame(x: number, y: number, ang: number) {
+    for (let i = 0; i < 4; i++) {
+      const a = ang + (Math.random() - 0.5) * 0.3;
+      const s = rnd(380, 640);
+      const life = rnd(0.25, 0.42);
+      parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, size: rnd(14, 30), kind: 'glow', color: Math.random() < 0.5 ? 'rgba(255,150,40,.85)' : 'rgba(255,210,90,.8)', grav: -160, drag: 2.4 });
+    }
     kick();
   }
 
@@ -218,9 +230,15 @@ export function createFx() {
     for (const g of lobs) {
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = '#3b4a3a'; ctx.beginPath(); ctx.arc(g.x, g.y, 9, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#1d261d'; ctx.fillRect(g.x - 3, g.y - 13, 6, 5);
-      if (g.t >= 1 && Math.floor(g.blink * 12) % 2 === 0) { ctx.fillStyle = '#ff3b2e'; ctx.beginPath(); ctx.arc(g.x, g.y, 4, 0, Math.PI * 2); ctx.fill(); }
+      const br = g.small ? 5 : g.chute ? 11 : 9;
+      if (g.chute && g.t < 1) { // parachute: a canopy above the bomb, with cords
+        ctx.fillStyle = '#ff5ea8'; ctx.beginPath(); ctx.arc(g.x, g.y - 36, 28, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+        for (const dx of [-28, -10, 10, 28]) { ctx.beginPath(); ctx.moveTo(g.x + dx, g.y - 36); ctx.lineTo(g.x, g.y - br); ctx.stroke(); }
+      }
+      ctx.fillStyle = g.chute ? '#7a2250' : '#3b4a3a'; ctx.beginPath(); ctx.arc(g.x, g.y, br, 0, Math.PI * 2); ctx.fill();
+      if (!g.small) { ctx.fillStyle = '#1d261d'; ctx.fillRect(g.x - 3, g.y - br - 4, 6, 5); }
+      if (g.t >= 1 && Math.floor(g.blink * 12) % 2 === 0) { ctx.fillStyle = '#ff3b2e'; ctx.beginPath(); ctx.arc(g.x, g.y, g.small ? 2.5 : 4, 0, Math.PI * 2); ctx.fill(); }
       ctx.globalCompositeOperation = 'lighter';
     }
     for (const p of projs) {
@@ -270,7 +288,7 @@ export function createFx() {
     restoreAll();
   }
 
-  return { spark, smoke, flash, ring, beam, shoot, lob, shake, shatter, fling, restoreAll, dispose };
+  return { spark, smoke, flash, ring, beam, shoot, lob, flame, shake, shatter, fling, restoreAll, dispose };
 }
 
 export type Fx = ReturnType<typeof createFx>;

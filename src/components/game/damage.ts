@@ -5,7 +5,9 @@ import { hpFor, maskForHoles, meterOf, nearestWithin } from '@/lib/damage';
 // Hits knock letters loose (they fly), punch holes (CSS masks) and use up hit points; at zero the rest shatters. The original is only hidden, never changed, so restore() is exact.
 
 type Hole = { x: number; y: number; r: number };
-type Proxy = { orig: HTMLElement; root: HTMLElement; prev: string; hp: number; holes: Hole[]; letters: HTMLElement[]; left: number; gone: boolean };
+type Burn = { x: number; y: number; r: number; until: number }; // a fire front, in proxy-local px
+type Proxy = { orig: HTMLElement; root: HTMLElement; prev: string; hp: number; holes: Hole[]; letters: HTMLElement[]; left: number; gone: boolean; burns: Burn[]; charring: { s: HTMLElement; at: number }[] };
+const BURN_MS = 2500; // a fire keeps burning this long after the last flame touched it
 export type HitOpts = { radius: number; dmg: number; power: number };
 
 const MEDIA = 'img,svg';
@@ -77,7 +79,7 @@ export function createDamage(fx: Fx, onMeter: (p: number) => void) {
     root.style.setProperty('-webkit-mask-composite', 'source-in');
     const letters = wrapLetters(root);
     document.body.appendChild(root);
-    const p: Proxy = { orig, root, prev: orig.style.visibility, hp: hpFor(r.width, r.height), holes: [], letters, left: letters.length, gone: false };
+    const p: Proxy = { orig, root, prev: orig.style.visibility, hp: hpFor(r.width, r.height), holes: [], letters, left: letters.length, gone: false, burns: [], charring: [] };
     orig.style.visibility = 'hidden';
     orig.dataset.destroyed = '1'; // the world scan skips it
     byOrig.set(orig, p);
@@ -113,6 +115,14 @@ export function createDamage(fx: Fx, onMeter: (p: number) => void) {
     retire(p);
   }
 
+  function addHole(p: Proxy, pt: { x: number; y: number }, r: number) {
+    const rr = p.root.getBoundingClientRect();
+    p.holes.push({ x: pt.x - rr.left, y: pt.y - rr.top, r });
+    const m = maskForHoles(p.holes);
+    p.root.style.maskImage = m;
+    p.root.style.setProperty('-webkit-mask-image', m);
+  }
+
   /** Damage `el` at viewport point `pt`: knocks loose the letters within o.radius, punches a hole, and shatters the rest when its hit points run out. */
   function hit(el: HTMLElement, pt: { x: number; y: number }, o: HitOpts) {
     let p = byOrig.get(el);
@@ -128,16 +138,75 @@ export function createDamage(fx: Fx, onMeter: (p: number) => void) {
       p.left--;
       done++;
     }
-    const rr = p.root.getBoundingClientRect();
-    p.holes.push({ x: pt.x - rr.left, y: pt.y - rr.top, r: Math.min(70, 10 + o.dmg * 7) });
-    const m = maskForHoles(p.holes);
-    p.root.style.maskImage = m;
-    p.root.style.setProperty('-webkit-mask-image', m);
+    addHole(p, pt, Math.min(70, 10 + o.dmg * 7));
     p.hp -= o.dmg;
     if (p.hp <= 0) finish(p, pt, o.power);
     else if (p.letters.length && p.left <= 0 && !p.root.querySelector(MEDIA)) retire(p); // nothing left to see
     onMeter(meterOf(done, total));
   }
+
+  const burning = new Set<Proxy>();
+
+  /** Set `el` on fire at viewport point `pt`: the fire spreads from there, chars letters that crumble to ash, and wears the block down until it breaks. */
+  function burn(el: HTMLElement, pt: { x: number; y: number }) {
+    let p = byOrig.get(el);
+    if (p?.gone) return;
+    p ??= make(el) ?? undefined;
+    if (!p) return;
+    const rr = p.root.getBoundingClientRect();
+    const lx = pt.x - rr.left;
+    const ly = pt.y - rr.top;
+    const now = performance.now();
+    const near = p.burns.find((b) => Math.hypot(b.x - lx, b.y - ly) < 40);
+    if (near) near.until = now + BURN_MS;
+    else { p.burns.push({ x: lx, y: ly, r: 14, until: now + BURN_MS }); addHole(p, pt, 12); }
+    burning.add(p);
+  }
+
+  function tick() {
+    const now = performance.now();
+    let changed = false;
+    burning.forEach((p) => {
+      if (p.gone) { burning.delete(p); return; }
+      p.burns = p.burns.filter((b) => b.until > now);
+      if (!p.burns.length && !p.charring.length) { burning.delete(p); return; }
+      const rr = p.root.getBoundingClientRect();
+      for (const b of p.burns) {
+        b.r = Math.min(110, b.r + 10); // the fire front spreads
+        const cx = rr.left + b.x;
+        const cy = rr.top + b.y;
+        for (const s of p.letters) {
+          if (s.style.visibility === 'hidden' || s.dataset.char) continue;
+          const q = s.getBoundingClientRect();
+          if (Math.hypot(q.left + q.width / 2 - cx, q.top + q.height / 2 - cy) > b.r) continue;
+          s.dataset.char = '1';
+          s.style.color = '#2a1a10';
+          s.style.textShadow = '0 0 6px #ff6a1a';
+          p.charring.push({ s, at: now });
+          fx.spark(q.left + q.width / 2, q.top, 1, { color: '#ff8a2a', speed: 140, angle: -Math.PI / 2, spread: 1 });
+        }
+        p.hp -= 0.25;
+      }
+      p.charring = p.charring.filter((c) => { // charred letters crumble into ash after a moment
+        if (now - c.at < 700) return true;
+        const q = c.s.getBoundingClientRect();
+        fling(c.s, q, { x: q.left + q.width / 2, y: q.top + q.height / 2 + 8 }, 70);
+        c.s.style.visibility = 'hidden';
+        p.left--;
+        done++;
+        changed = true;
+        return false;
+      });
+      if (p.hp <= 0) {
+        const b = p.burns[0];
+        finish(p, { x: rr.left + (b?.x ?? rr.width / 2), y: rr.top + (b?.y ?? rr.height / 2) }, 300);
+        burning.delete(p);
+        changed = true;
+      } else if (p.letters.length && p.left <= 0 && !p.root.querySelector(MEDIA)) { retire(p); burning.delete(p); }
+    });
+    if (changed) onMeter(meterOf(done, total));
+  }
+  const timer = window.setInterval(tick, 250);
 
   /** The original element behind a proxy part (so shots at a damaged block keep hitting that block). */
   function proxyFor(e: Element): HTMLElement | null {
@@ -154,11 +223,18 @@ export function createDamage(fx: Fx, onMeter: (p: number) => void) {
     });
     byOrig.clear();
     byRoot.clear();
+    burning.clear();
     done = 0;
     onMeter(0);
   }
 
-  return { hit, proxyFor, restore };
+  /** Stop the fire timer and put everything back. */
+  function dispose() {
+    clearInterval(timer);
+    restore();
+  }
+
+  return { hit, burn, proxyFor, restore, dispose };
 }
 
 export type Damage = ReturnType<typeof createDamage>;
