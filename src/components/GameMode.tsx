@@ -82,7 +82,7 @@ function pickAt(x: number, y: number, proxyFor: (e: Element) => HTMLElement | nu
   return null;
 }
 
-/** Play game button (in the nav) + weapon bar + A/D/Space platformer shooter. Movement and the gun arm live in SpaceScene/RobotShip (they read gameState). */
+/** Play game button (in the nav) + weapon bar + WASD flying shooter. Movement and the gun arm live in SpaceScene/RobotShip (they read gameState). */
 export function GameMode() {
   const [ok, setOk] = useState(false);
   const [open, setOpen] = useState(false);
@@ -91,6 +91,7 @@ export function GameMode() {
   const [meter, setMeter] = useState(0); // % destroyed
   const [paused, setPaused] = useState(false); // the Esc menu; the game keeps running behind it
   const [soundOn, setSoundOn] = useState(true);
+  const [gunsOpen, setGunsOpen] = useState(true); // the weapon strip on the right can be hidden
   const [done, setDone] = useState(false); // the "portfolio destroyed" screen
   const restartRef = useRef<() => void>(() => {});
   const exitingRef = useRef(false);
@@ -325,19 +326,30 @@ export function GameMode() {
         {playing ? 'Exit game' : open ? 'Cancel' : 'Play game'}
       </button>
       {(open || playing) && createPortal(
+        <>
+        <div className="game-guns" data-game-ui data-collapsed={gunsOpen ? undefined : '1'}>
+          <button className="btn btn-ghost game-guns-toggle" aria-expanded={gunsOpen} aria-controls="game-guns-list" onClick={() => setGunsOpen((o) => !o)}>
+            {gunsOpen ? 'Hide weapons ›' : `‹ ${gun ? WEAPONS[gun].label : 'Weapons'}`}
+          </button>
+          {gunsOpen && (
+            <div id="game-guns-list" role="group" aria-label="Weapons">
+              {GUNS.map((g, i) => (
+                <button key={g} className="btn btn-ghost" aria-pressed={gun === g} onClick={() => pick(g)}>{i + 1} {WEAPONS[g].label}</button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="game-dock" data-game-ui>
-          {GUNS.map((g, i) => (
-            <button key={g} className="btn btn-ghost" aria-pressed={gun === g} onClick={() => pick(g)}>{i + 1} {WEAPONS[g].label}</button>
-          ))}
           {playing && (
             <div className="game-meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={meter}>
               <i style={{ width: `${meter}%` }} />
               <span>Destroyed {meter}%</span>
             </div>
           )}
-          {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG and Flame) · right-click grenade · 1-7 or wheel weapon · Esc menu</span>}
+          {playing && <span className="game-hint">W A S D fly · click shoot (hold for SMG and Flame) · right-click grenade · 1-7 or wheel weapon · Esc menu</span>}
           <button className="btn btn-primary" onClick={playing ? exit : () => setOpen(false)}>{playing ? 'Exit game' : 'Cancel'}</button>
-        </div>,
+        </div>
+        </>,
         document.body,
       )}
       {playing && paused && createPortal(
