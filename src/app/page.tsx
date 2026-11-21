@@ -52,6 +52,7 @@ export default function Home() {
           </nav>
           <div className="nav-actions">
             
+            <GameMode />
             <a className="btn btn-primary" data-magnetic href="#contact">Contact me</a>
             <MenuButton />
           </div>
@@ -61,7 +62,6 @@ export default function Home() {
       <main id="top" className="page">
         <SpaceScene />
         <Meteor />
-        <GameMode />
         <ScrollJourney />
         <section className="hero" aria-labelledby="hero-title">
           <div className="wrap">

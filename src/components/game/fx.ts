@@ -1,4 +1,5 @@
 import { polyCss, shardPoints } from '@/lib/game';
+import { arcPoint } from '@/lib/weapons';
 
 // Effects for the destroy-the-site game: one overlay canvas (sparks, smoke, glow, beams, rings, projectiles) plus DOM shards for destroyed elements.
 
@@ -6,6 +7,7 @@ type Part = { x: number; y: number; vx: number; vy: number; life: number; max: n
 type Beam = { x0: number; y0: number; x1: number; y1: number; life: number; max: number; color: string };
 type Ring = { x: number; y: number; r: number; life: number; max: number; color: string };
 type Proj = { x: number; y: number; tx: number; ty: number; speed: number; accel: number; kind: 'bullet' | 'rocket'; ang: number; onHit: () => void };
+type Lob = { x0: number; y0: number; tx: number; ty: number; t: number; dur: number; h: number; fuse: number; blink: number; onHit: () => void; x: number; y: number };
 type ShardNode = { el: HTMLElement; x: number; y: number; vx: number; vy: number; rot: number; vr: number; life: number; max: number };
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
@@ -46,13 +48,14 @@ export function createFx() {
   const beams: Beam[] = [];
   const rings: Ring[] = [];
   const projs: Proj[] = [];
+  const lobs: Lob[] = [];
   const shards: ShardNode[] = [];
   const destroyed = new Map<HTMLElement, string>(); // element -> its previous inline visibility
   const timers = new Set<number>();
   let raf = 0;
   let last = 0;
 
-  const active = () => parts.length + beams.length + rings.length + projs.length + shards.length > 0;
+  const active = () => parts.length + beams.length + rings.length + projs.length + lobs.length + shards.length > 0;
   const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
 
   function spark(x: number, y: number, n: number, o: { color?: string; speed?: number; angle?: number; spread?: number } = {}) {
@@ -80,6 +83,13 @@ export function createFx() {
   /** Fly a bullet or rocket from (x0,y0) to (tx,ty); onHit runs on arrival. */
   function shoot(kind: 'bullet' | 'rocket', x0: number, y0: number, tx: number, ty: number, onHit: () => void) {
     projs.push({ x: x0, y: y0, tx, ty, speed: kind === 'bullet' ? 3200 : 450, accel: kind === 'bullet' ? 0 : 1500, kind, ang: Math.atan2(ty - y0, tx - x0), onHit });
+    kick();
+  }
+
+  /** Lob a grenade from (x0,y0) onto (tx,ty): flies an arc, sits there blinking for the fuse, then onHit runs. */
+  function lob(x0: number, y0: number, tx: number, ty: number, onHit: () => void) {
+    const dist = Math.hypot(tx - x0, ty - y0);
+    lobs.push({ x0, y0, tx, ty, t: 0, dur: Math.min(0.9, 0.35 + dist / 1400), h: Math.min(260, 60 + dist * 0.25), fuse: 0.5, blink: 0, onHit, x: x0, y: y0 });
     kick();
   }
 
@@ -113,6 +123,7 @@ export function createFx() {
     }
     destroyed.set(el, el.style.visibility);
     el.style.visibility = 'hidden';
+    el.dataset.destroyed = '1'; // the world scan skips it, so it stops being ground
     kick();
     return true;
   }
@@ -131,6 +142,18 @@ export function createFx() {
       p.x += Math.cos(p.ang) * step;
       p.y += Math.sin(p.ang) * step;
       if (p.kind === 'rocket') { smoke(p.x - Math.cos(p.ang) * 16, p.y - Math.sin(p.ang) * 16, 1, 4); spark(p.x, p.y, 2, { angle: p.ang + Math.PI, spread: 0.5, speed: 220, color: '#ff9a3a' }); }
+    }
+
+    for (let i = lobs.length - 1; i >= 0; i--) {
+      const g = lobs[i];
+      if (g.t < 1) {
+        g.t = Math.min(1, g.t + dt / g.dur);
+        const q = arcPoint(g.x0, g.y0, g.tx, g.ty, g.t, g.h);
+        g.x = q.x; g.y = q.y;
+      } else {
+        g.fuse -= dt; g.blink += dt;
+        if (g.fuse <= 0) { lobs.splice(i, 1); g.onHit(); }
+      }
     }
 
     for (let i = parts.length - 1; i >= 0; i--) {
@@ -183,6 +206,14 @@ export function createFx() {
       ctx.globalAlpha = a; ctx.strokeStyle = g.color; ctx.lineWidth = 6 * a + 1;
       ctx.beginPath(); ctx.arc(g.x, g.y, g.r * (1 - a * a), 0, Math.PI * 2); ctx.stroke();
     }
+    for (const g of lobs) {
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#3b4a3a'; ctx.beginPath(); ctx.arc(g.x, g.y, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1d261d'; ctx.fillRect(g.x - 3, g.y - 13, 6, 5);
+      if (g.t >= 1 && Math.floor(g.blink * 12) % 2 === 0) { ctx.fillStyle = '#ff3b2e'; ctx.beginPath(); ctx.arc(g.x, g.y, 4, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalCompositeOperation = 'lighter';
+    }
     for (const p of projs) {
       ctx.globalAlpha = 1;
       if (p.kind === 'bullet') {
@@ -214,7 +245,7 @@ export function createFx() {
   }
 
   function restoreAll() {
-    destroyed.forEach((prev, el) => { if (prev) el.style.visibility = prev; else el.style.removeProperty('visibility'); });
+    destroyed.forEach((prev, el) => { delete el.dataset.destroyed; if (prev) el.style.visibility = prev; else el.style.removeProperty('visibility'); });
     destroyed.clear();
   }
 
@@ -230,7 +261,7 @@ export function createFx() {
     restoreAll();
   }
 
-  return { spark, smoke, flash, ring, beam, shoot, shake, shatter, restoreAll, dispose };
+  return { spark, smoke, flash, ring, beam, shoot, lob, shake, shatter, restoreAll, dispose };
 }
 
 export type Fx = ReturnType<typeof createFx>;

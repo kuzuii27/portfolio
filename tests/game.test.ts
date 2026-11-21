@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BREAKABLE, alongLine, extendToEdge, flightStep, isGameUi, shardPoints } from '@/lib/game';
+import { BREAKABLE, alongLine, extendToEdge, isGameUi, shardPoints } from '@/lib/game';
 
 const fake = (inUi: boolean) => ({ closest: (s: string) => (s.includes('data-game-ui') ? (inUi ? {} : null) : null) });
 const area = (t: [number, number][]) => Math.abs((t[0][0] * (t[1][1] - t[2][1]) + t[1][0] * (t[2][1] - t[0][1]) + t[2][0] * (t[0][1] - t[1][1])) / 2);
@@ -37,20 +37,5 @@ describe('game helpers', () => {
       expect(sh.cx).toBeGreaterThanOrEqual(0);
       expect(sh.cx).toBeLessThanOrEqual(300);
     }
-  });
-
-  it('flies with momentum, clamps to the screen, and slows with no input', () => {
-    const b = { w: 1000, h: 800, mx: 50, my: 70 };
-    let s = { x: 500, y: 400, vx: 0, vy: 0 };
-    s = flightStep(s, { x: 1, y: 0 }, 0.1, b);
-    expect(s.vx).toBeGreaterThan(0);
-    expect(s.x).toBeGreaterThan(500);
-    for (let i = 0; i < 200; i++) s = flightStep(s, { x: 1, y: 0 }, 0.05, b);
-    expect(s.x).toBeLessThanOrEqual(950);
-    expect(Math.hypot(s.vx, s.vy)).toBeLessThanOrEqual(600);
-    const fast = { x: 500, y: 400, vx: 400, vy: 0 };
-    expect(flightStep(fast, { x: 0, y: 0 }, 0.1, b).vx).toBeLessThan(400);
-    const diag = flightStep({ x: 500, y: 400, vx: 0, vy: 0 }, { x: 1, y: 1 }, 0.1, b);
-    expect(Math.hypot(diag.vx, diag.vy)).toBeCloseTo(Math.abs(flightStep({ x: 500, y: 400, vx: 0, vy: 0 }, { x: 1, y: 0 }, 0.1, b).vx), 3); // no faster on diagonals
   });
 });

@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BREAKABLE, GUNS, alongLine, extendToEdge, gameState, isGameUi, type Gun } from '@/lib/game';
+import { createPortal } from 'react-dom';
+import { BREAKABLE, alongLine, extendToEdge, gameState, isGameUi } from '@/lib/game';
+import { GRENADE_COOLDOWN, GUNS, WEAPONS, gunFromKey, nextWeapon, spreadAngles, type Gun } from '@/lib/weapons';
 import { createFx } from '@/components/game/fx';
 
-const LABEL: Record<Gun, string> = { pistol: 'Pistol', laser: 'Laser', rocket: 'Rocket' };
+type Snd = Gun | 'grenade';
 
 let ctx: AudioContext | null = null;
 /** Zero-dependency Web Audio synth. A sound failure never blocks the game. */
-function sound(gun: Gun, phase: 'fire' | 'hit') {
+function sound(gun: Snd, phase: 'fire' | 'hit') {
   try {
     ctx ??= new AudioContext();
     const c = ctx;
@@ -38,11 +40,15 @@ function sound(gun: Gun, phase: 'fire' | 'hit') {
     };
     if (phase === 'fire') {
       if (gun === 'pistol') { noise(0.12, 0.5); tone('sine', 140, 50, 0.12, 0.4); }
+      else if (gun === 'smg') { noise(0.05, 0.35); tone('square', 220, 90, 0.05, 0.12); }
+      else if (gun === 'shotgun') { noise(0.3, 0.7); tone('sawtooth', 110, 40, 0.3, 0.3); }
       else if (gun === 'laser') { tone('sawtooth', 1800, 160, 0.3, 0.18); tone('sine', 900, 120, 0.3, 0.2); }
-      else { noise(0.5, 0.25); tone('sawtooth', 160, 60, 0.5, 0.15); }
-    } else if (gun === 'pistol') noise(0.06, 0.3);
+      else if (gun === 'rocket') { noise(0.5, 0.25); tone('sawtooth', 160, 60, 0.5, 0.15); }
+      else tone('sine', 500, 200, 0.15, 0.12); // grenade throw
+    } else if (gun === 'pistol' || gun === 'smg') noise(0.06, 0.3);
+    else if (gun === 'shotgun') noise(0.1, 0.3);
     else if (gun === 'laser') noise(0.15, 0.25);
-    else { noise(0.7, 0.7); tone('sine', 90, 28, 0.6, 0.6); }
+    else { noise(0.7, gun === 'grenade' ? 0.5 : 0.7); tone('sine', 90, 28, 0.6, gun === 'grenade' ? 0.45 : 0.6); }
   } catch {
     /* no audio: fine */
   }
@@ -63,7 +69,7 @@ function pickAt(x: number, y: number): HTMLElement | null {
   return null;
 }
 
-/** Play game dock + W/A/S/D-flown robot shooting. Flight and the gun arm live in SpaceScene/RobotShip (they read gameState). */
+/** Play game button (in the nav) + weapon bar + A/D/Space platformer shooter. Movement and the gun arm live in SpaceScene/RobotShip (they read gameState). */
 export function GameMode() {
   const [ok, setOk] = useState(false);
   const [open, setOpen] = useState(false);
@@ -82,6 +88,7 @@ export function GameMode() {
     if (!playing) return;
     const root = document.documentElement;
     root.dataset.game = '1';
+    window.dispatchEvent(new Event('game:start'));
     gameState.aim = { x: innerWidth * 0.6, y: innerHeight * 0.5 };
     const fx = createFx();
     const timers = new Set<number>();
@@ -98,24 +105,53 @@ export function GameMode() {
       }
       return out;
     };
+    const muzzle = () => (gameState.muzzle.x || gameState.muzzle.y ? { ...gameState.muzzle } : { x: innerWidth / 2, y: innerHeight / 2 });
 
+    /** Explosion on the page: flash, ring, sparks, smoke, shake, and everything within the radius is destroyed. */
+    const boom = (x: number, y: number, radius: number, cap: number, snd: Snd) => {
+      sound(snd, 'hit');
+      fx.flash(x, y, radius * 1.3, 'rgba(255,190,100,.95)');
+      fx.ring(x, y, radius * 1.4, '#ffb347');
+      fx.spark(x, y, Math.round(radius * 0.4), { speed: 720 });
+      fx.smoke(x, y, 14, 30);
+      fx.shake();
+      const pts = [{ x, y }];
+      for (const [f, n] of [[0.55, 6], [1, 12]] as const) for (let i = 0; i < n; i++) pts.push({ x: x + Math.cos((i / n) * Math.PI * 2) * radius * f, y: y + Math.sin((i / n) * Math.PI * 2) * radius * f });
+      hitAll(pts, cap).forEach((h) => fx.shatter(h.t, { x, y }, 700));
+    };
+    /** One bullet along `ang` for `dist` px; whatever is at the end of its flight is destroyed. */
+    const bullet = (from: { x: number; y: number }, ang: number, dist: number, power: number) => {
+      const ex = from.x + Math.cos(ang) * dist;
+      const ey = from.y + Math.sin(ang) * dist;
+      fx.shoot('bullet', from.x, from.y, ex, ey, () => {
+        fx.spark(ex, ey, 8, { speed: 360 });
+        const t = pickAt(ex, ey);
+        if (t) fx.shatter(t, { x: ex, y: ey }, power);
+      });
+    };
+
+    let last = 0;
+    let lastGrenade = 0;
     const fire = (x: number, y: number) => {
       const g = gameState.gun;
       if (!g) return;
-      const m = gameState.muzzle;
-      const from = m.x || m.y ? { x: m.x, y: m.y } : { x: innerWidth / 2, y: innerHeight / 2 };
+      const w = WEAPONS[g];
+      const now = performance.now();
+      if (now - last < w.cooldown * 1000) return;
+      last = now;
+      const from = muzzle();
       const ang = Math.atan2(y - from.y, x - from.x);
+      const dist = Math.max(60, Math.hypot(x - from.x, y - from.y));
       gameState.shots++;
       sound(g, 'fire');
-      if (g === 'pistol') {
-        fx.spark(from.x, from.y, 6, { angle: ang, spread: 0.5, speed: 300 });
-        fx.flash(from.x, from.y, 28, 'rgba(255,220,140,.9)');
-        fx.shoot('bullet', from.x, from.y, x, y, () => {
-          sound(g, 'hit');
-          fx.spark(x, y, 14, { speed: 380 });
-          const t = pickAt(x, y);
-          if (t) fx.shatter(t, { x, y }, 420);
-        });
+      if (g === 'pistol' || g === 'smg') {
+        fx.spark(from.x, from.y, g === 'smg' ? 3 : 6, { angle: ang, spread: 0.5, speed: 300 });
+        fx.flash(from.x, from.y, g === 'smg' ? 18 : 28, 'rgba(255,220,140,.9)');
+        bullet(from, ang + (Math.random() - 0.5) * w.spread, dist, g === 'smg' ? 300 : 420);
+      } else if (g === 'shotgun') {
+        fx.spark(from.x, from.y, 12, { angle: ang, spread: 0.7, speed: 420 });
+        fx.flash(from.x, from.y, 44, 'rgba(255,200,120,.95)');
+        spreadAngles(w.pellets, w.spread).forEach((a) => bullet(from, ang + a, Math.max(260, dist), 380));
       } else if (g === 'laser') {
         const end = extendToEdge(from.x, from.y, x, y, innerWidth, innerHeight);
         fx.flash(from.x, from.y, 34, 'rgba(120,230,255,.9)');
@@ -128,61 +164,100 @@ export function GameMode() {
       } else {
         fx.flash(from.x, from.y, 40, 'rgba(255,170,90,.9)');
         fx.spark(from.x, from.y, 8, { angle: ang + Math.PI, spread: 0.8, speed: 260, color: '#ff9a3a' });
-        fx.shoot('rocket', from.x, from.y, x, y, () => {
-          sound(g, 'hit');
-          fx.flash(x, y, 170, 'rgba(255,190,100,.95)');
-          fx.ring(x, y, 180, '#ffb347');
-          fx.spark(x, y, 50, { speed: 720 });
-          fx.smoke(x, y, 14, 30);
-          fx.shake();
-          const pts = [{ x, y }];
-          for (const [r, n] of [[70, 6], [130, 12]] as const) for (let i = 0; i < n; i++) pts.push({ x: x + Math.cos((i / n) * Math.PI * 2) * r, y: y + Math.sin((i / n) * Math.PI * 2) * r });
-          hitAll(pts, 10).forEach((h) => fx.shatter(h.t, { x, y }, 700));
-        });
+        fx.shoot('rocket', from.x, from.y, x, y, () => boom(x, y, 130, 10, 'rocket'));
       }
     };
+    /** Right click: a grenade lands on the cursor, blinks, then blows. */
+    const grenade = (x: number, y: number) => {
+      if (performance.now() - lastGrenade < GRENADE_COOLDOWN * 1000) return;
+      lastGrenade = performance.now();
+      const from = muzzle();
+      gameState.shots++; // the arm kicks
+      sound('grenade', 'fire');
+      fx.lob(from.x, from.y, x, y, () => boom(x, y, 105, 6, 'grenade'));
+    };
 
+    let held = false;
     const onMove = (e: PointerEvent) => { gameState.aim = { x: e.clientX, y: e.clientY }; };
-    const onDown = (e: MouseEvent) => { if (!isGameUi(e.target as Element | null)) e.preventDefault(); }; // no text selection or focus while playing
+    const onDown = (e: MouseEvent) => {
+      if (isGameUi(e.target as Element | null)) return;
+      e.preventDefault(); // no text selection or focus while playing
+      if (e.button === 0) { held = true; fire(e.clientX, e.clientY); }
+    };
+    const onUp = () => { held = false; };
+    const auto = window.setInterval(() => { const g = gameState.gun; if (held && g && WEAPONS[g].auto) fire(gameState.aim.x, gameState.aim.y); }, 25);
     const onClick = (e: MouseEvent) => {
       if (isGameUi(e.target as Element | null)) return;
-      e.preventDefault();
+      e.preventDefault(); // the shot already happened on mousedown; a click must never follow a link or press a button
       e.stopImmediatePropagation();
-      const scripted = e.clientX === 0 && e.clientY === 0; // el.click() from code has no position: shoot where the cursor last was
-      fire(scripted ? gameState.aim.x : e.clientX, scripted ? gameState.aim.y : e.clientY);
+    };
+    const onContext = (e: MouseEvent) => {
+      if (isGameUi(e.target as Element | null)) return;
+      e.preventDefault();
+      grenade(e.clientX, e.clientY);
     };
     const onSubmit = (e: Event) => e.preventDefault();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setGun(null); setOpen(false); } };
+    let wheelAt = 0;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault(); // the camera follows the player; the wheel switches weapons and Lenis never sees it
+      e.stopPropagation();
+      const now = performance.now();
+      if (now - wheelAt < 140) return;
+      wheelAt = now;
+      setGun((g) => (g ? nextWeapon(g, e.deltaY > 0 ? 1 : -1) : g));
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setGun(null); setOpen(false); return; }
+      const g = gunFromKey(e.key);
+      if (g) setGun(g);
+    };
     addEventListener('pointermove', onMove, { passive: true });
+    addEventListener('blur', onUp);
     document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('mouseup', onUp, true);
     document.addEventListener('click', onClick, true);
+    document.addEventListener('contextmenu', onContext, true);
     document.addEventListener('submit', onSubmit, true);
+    document.addEventListener('wheel', onWheel, { capture: true, passive: false });
     document.addEventListener('keydown', onKey, true);
 
     return () => {
       removeEventListener('pointermove', onMove);
+      removeEventListener('blur', onUp);
       document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('mouseup', onUp, true);
       document.removeEventListener('click', onClick, true);
+      document.removeEventListener('contextmenu', onContext, true);
       document.removeEventListener('submit', onSubmit, true);
+      document.removeEventListener('wheel', onWheel, true);
       document.removeEventListener('keydown', onKey, true);
+      clearInterval(auto);
       timers.forEach(clearTimeout);
       fx.dispose(); // also restores every destroyed element
       gameState.gun = null;
       delete root.dataset.game;
+      window.dispatchEvent(new Event('game:end'));
     };
   }, [playing]);
 
   if (!ok) return null;
+  const exit = () => { setGun(null); setOpen(false); };
   const pick = (g: Gun) => { setGun(g); setOpen(false); };
   return (
-    <div className="game-dock" data-game-ui>
-      {!playing && !open && <button className="btn btn-ghost" onClick={() => setOpen(true)}>Play game</button>}
-      {(open || playing) && GUNS.map((g) => (
-        <button key={g} className="btn btn-ghost" aria-pressed={gun === g} onClick={() => pick(g)}>{LABEL[g]}</button>
-      ))}
-      {open && !playing && <button className="btn btn-ghost" onClick={() => setOpen(false)}>Cancel</button>}
-      {playing && <span className="game-hint">W A S D move · click to shoot · Esc exit</span>}
-      {playing && <button className="btn btn-primary" onClick={() => { setGun(null); setOpen(false); }}>Exit game</button>}
-    </div>
+    <>
+      <button className="btn btn-ghost game-nav" data-game-ui onClick={playing ? exit : () => setOpen((o) => !o)}>
+        {playing ? 'Exit game' : open ? 'Cancel' : 'Play game'}
+      </button>
+      {(open || playing) && createPortal(
+        <div className="game-dock" data-game-ui>
+          {GUNS.map((g, i) => (
+            <button key={g} className="btn btn-ghost" aria-pressed={gun === g} onClick={() => pick(g)}>{i + 1} {WEAPONS[g].label}</button>
+          ))}
+          {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG) · right-click grenade · 1-5 or wheel weapon · Esc exit</span>}
+          <button className="btn btn-primary" onClick={exit}>{playing ? 'Exit game' : 'Cancel'}</button>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

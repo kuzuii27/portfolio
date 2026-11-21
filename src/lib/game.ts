@@ -1,7 +1,7 @@
 // Pure helpers and shared state for the destroy-the-site game (see docs/superpowers/specs/2026-11-20-destroy-site-game-design.md, v2).
 
-export type Gun = 'pistol' | 'laser' | 'rocket';
-export const GUNS: readonly Gun[] = ['pistol', 'laser', 'rocket'];
+import type { Gun } from '@/lib/weapons';
+export type { Gun };
 
 /** Shared mutable state: GameMode writes gun/aim/shots, RobotShip reads them each frame and writes the muzzle position (viewport px). */
 export const gameState = { gun: null as Gun | null, aim: { x: 0, y: 0 }, muzzle: { x: 0, y: 0 }, shots: 0 };
@@ -60,30 +60,3 @@ export function shardPoints(w: number, h: number, n: number, rnd: () => number =
 }
 
 export const polyCss = (pts: [number, number][]) => `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
-
-type Flight = { x: number; y: number; vx: number; vy: number };
-
-/** One physics step of the robot's W/A/S/D flight: acceleration, drag, speed cap, clamped to the screen (velocity zeroed on contact). */
-export function flightStep(s: Flight, dir: { x: number; y: number }, dt: number, b: { w: number; h: number; mx: number; my: number }): Flight {
-  const A = 2800;
-  const MAX = 560;
-  const len = Math.hypot(dir.x, dir.y);
-  let vx = s.vx;
-  let vy = s.vy;
-  if (len === 0) {
-    const k = Math.exp(-6 * dt);
-    vx *= k;
-    vy *= k;
-  } else {
-    const k = Math.exp(-1.2 * dt);
-    vx = (vx + (dir.x / len) * A * dt) * k;
-    vy = (vy + (dir.y / len) * A * dt) * k;
-  }
-  const sp = Math.hypot(vx, vy);
-  if (sp > MAX) { vx = (vx / sp) * MAX; vy = (vy / sp) * MAX; }
-  let x = s.x + vx * dt;
-  let y = s.y + vy * dt;
-  if (x < b.mx) { x = b.mx; vx = 0; } else if (x > b.w - b.mx) { x = b.w - b.mx; vx = 0; }
-  if (y < b.my) { y = b.my; vy = 0; } else if (y > b.h - b.my) { y = b.h - b.my; vy = 0; }
-  return { x, y, vx, vy };
-}
