@@ -14,9 +14,10 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const MAX_SHARDS = 500; // total live shard nodes: keeps big cards from stalling the page
 
 /** A styled, frozen copy of an element: computed styles are inlined (up to a node budget) so it looks the same outside its page context. */
-function cloneStyled(src: HTMLElement, r: DOMRect): HTMLElement {
+export function cloneStyled(src: HTMLElement, r: DOMRect, nodes = 220): HTMLElement {
   const root = src.cloneNode(true) as HTMLElement;
-  let budget = 220;
+  root.classList.remove('game-proxy'); // a shatter copy of a damaged block is debris, not a live proxy or ground
+  let budget = nodes;
   const walk = (a: Element, b: Element) => {
     if (budget-- <= 0) return;
     const cs = getComputedStyle(a);
@@ -90,6 +91,14 @@ export function createFx() {
   function lob(x0: number, y0: number, tx: number, ty: number, onHit: () => void) {
     const dist = Math.hypot(tx - x0, ty - y0);
     lobs.push({ x0, y0, tx, ty, t: 0, dur: Math.min(0.9, 0.35 + dist / 1400), h: Math.min(260, 60 + dist * 0.25), fuse: 0.5, blink: 0, onHit, x: x0, y: y0 });
+    kick();
+  }
+
+  /** Fly an existing fixed element (a knocked-loose letter) with gravity, spin and fade, then remove it. */
+  function fling(el: HTMLElement, vx: number, vy: number) {
+    if (shards.length >= MAX_SHARDS) { el.remove(); return; }
+    const life = rnd(1.1, 1.8);
+    shards.push({ el, x: 0, y: 0, vx, vy, rot: 0, vr: rnd(-9, 9), life, max: life });
     kick();
   }
 
@@ -261,7 +270,7 @@ export function createFx() {
     restoreAll();
   }
 
-  return { spark, smoke, flash, ring, beam, shoot, lob, shake, shatter, restoreAll, dispose };
+  return { spark, smoke, flash, ring, beam, shoot, lob, shake, shatter, fling, restoreAll, dispose };
 }
 
 export type Fx = ReturnType<typeof createFx>;

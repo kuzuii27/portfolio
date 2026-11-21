@@ -23,5 +23,6 @@ export function pageRects(from: number, to: number): Box[] {
     for (const q of Array.from(range.getClientRects())) push(q); // real line boxes: ragged text leaves gaps to fall through
   });
   document.querySelectorAll(BLOCK).forEach((el) => { if (!el.closest(SKIP)) push(el.getBoundingClientRect()); });
+  document.querySelectorAll('.game-proxy').forEach((el) => push(el.getBoundingClientRect())); // a damaged block is still ground until it breaks
   return out;
 }

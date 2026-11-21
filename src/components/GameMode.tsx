@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BREAKABLE, alongLine, extendToEdge, gameState, isGameUi } from '@/lib/game';
 import { GRENADE_COOLDOWN, GUNS, WEAPONS, gunFromKey, nextWeapon, spreadAngles, type Gun } from '@/lib/weapons';
 import { createFx } from '@/components/game/fx';
+import { createDamage } from '@/components/game/damage';
 
 type Snd = Gun | 'grenade';
 
@@ -57,9 +58,11 @@ function sound(gun: Snd, phase: 'fire' | 'hit') {
 const big = (r: DOMRect) => r.width * r.height > innerWidth * innerHeight * 0.5 || (r.width > innerWidth * 0.97 && r.height > innerHeight * 0.45);
 
 /** The topmost breakable thing under a viewport point (skips game UI, the robot and whole-page sections). Destroyed elements are hidden, so they stop hit-testing and the block behind is next. */
-function pickAt(x: number, y: number): HTMLElement | null {
+function pickAt(x: number, y: number, proxyFor: (e: Element) => HTMLElement | null): HTMLElement | null {
   for (const e of document.elementsFromPoint(x, y)) {
     if (isGameUi(e)) continue;
+    const damaged = proxyFor(e); // a block already swapped for its damage copy
+    if (damaged) return damaged;
     const t = e.closest(BREAKABLE) as HTMLElement | null;
     if (!t || isGameUi(t)) continue;
     const r = t.getBoundingClientRect();
@@ -75,6 +78,9 @@ export function GameMode() {
   const [open, setOpen] = useState(false);
   const [gun, setGun] = useState<Gun | null>(null);
   const playing = gun !== null;
+  const [meter, setMeter] = useState(0); // % destroyed
+  const [done, setDone] = useState(false); // the "portfolio destroyed" screen
+  const restartRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     queueMicrotask(() => setOk(!matchMedia('(prefers-reduced-motion: reduce), (pointer: coarse)').matches)); // keyboard + mouse game
@@ -91,6 +97,12 @@ export function GameMode() {
     window.dispatchEvent(new Event('game:start'));
     gameState.aim = { x: innerWidth * 0.6, y: innerHeight * 0.5 };
     const fx = createFx();
+    let shown = false;
+    const damage = createDamage(fx, (p) => {
+      setMeter(Math.round(p * 100));
+      if (p >= 0.9 && !shown) { shown = true; setDone(true); }
+    });
+    restartRef.current = () => { damage.restore(); shown = false; setDone(false); };
     const timers = new Set<number>();
     const later = (fn: () => void, ms: number) => {
       const id = window.setTimeout(() => { timers.delete(id); fn(); }, ms);
@@ -99,7 +111,7 @@ export function GameMode() {
     const hitAll = (pts: { x: number; y: number }[], cap: number) => {
       const out: { t: HTMLElement; x: number; y: number }[] = [];
       for (const p of pts) {
-        const t = pickAt(p.x, p.y);
+        const t = pickAt(p.x, p.y, damage.proxyFor);
         if (t && !out.some((o) => o.t === t)) out.push({ t, x: p.x, y: p.y });
         if (out.length >= cap) break;
       }
@@ -108,7 +120,7 @@ export function GameMode() {
     const muzzle = () => (gameState.muzzle.x || gameState.muzzle.y ? { ...gameState.muzzle } : { x: innerWidth / 2, y: innerHeight / 2 });
 
     /** Explosion on the page: flash, ring, sparks, smoke, shake, and everything within the radius is destroyed. */
-    const boom = (x: number, y: number, radius: number, cap: number, snd: Snd) => {
+    const boom = (x: number, y: number, radius: number, cap: number, snd: Snd, dmg: number) => {
       sound(snd, 'hit');
       fx.flash(x, y, radius * 1.3, 'rgba(255,190,100,.95)');
       fx.ring(x, y, radius * 1.4, '#ffb347');
@@ -117,16 +129,16 @@ export function GameMode() {
       fx.shake();
       const pts = [{ x, y }];
       for (const [f, n] of [[0.55, 6], [1, 12]] as const) for (let i = 0; i < n; i++) pts.push({ x: x + Math.cos((i / n) * Math.PI * 2) * radius * f, y: y + Math.sin((i / n) * Math.PI * 2) * radius * f });
-      hitAll(pts, cap).forEach((h) => fx.shatter(h.t, { x, y }, 700));
+      hitAll(pts, cap).forEach((h) => damage.hit(h.t, { x, y }, { radius, dmg, power: 700 }));
     };
     /** One bullet along `ang` for `dist` px; whatever is at the end of its flight is destroyed. */
-    const bullet = (from: { x: number; y: number }, ang: number, dist: number, power: number) => {
+    const bullet = (from: { x: number; y: number }, ang: number, dist: number, o: { radius: number; dmg: number; power: number }) => {
       const ex = from.x + Math.cos(ang) * dist;
       const ey = from.y + Math.sin(ang) * dist;
       fx.shoot('bullet', from.x, from.y, ex, ey, () => {
         fx.spark(ex, ey, 8, { speed: 360 });
-        const t = pickAt(ex, ey);
-        if (t) fx.shatter(t, { x: ex, y: ey }, power);
+        const t = pickAt(ex, ey, damage.proxyFor);
+        if (t) damage.hit(t, { x: ex, y: ey }, o);
       });
     };
 
@@ -147,11 +159,11 @@ export function GameMode() {
       if (g === 'pistol' || g === 'smg') {
         fx.spark(from.x, from.y, g === 'smg' ? 3 : 6, { angle: ang, spread: 0.5, speed: 300 });
         fx.flash(from.x, from.y, g === 'smg' ? 18 : 28, 'rgba(255,220,140,.9)');
-        bullet(from, ang + (Math.random() - 0.5) * w.spread, dist, g === 'smg' ? 300 : 420);
+        bullet(from, ang + (Math.random() - 0.5) * w.spread, dist, g === 'smg' ? { radius: 20, dmg: 0.5, power: 300 } : { radius: 26, dmg: 1, power: 420 });
       } else if (g === 'shotgun') {
         fx.spark(from.x, from.y, 12, { angle: ang, spread: 0.7, speed: 420 });
         fx.flash(from.x, from.y, 44, 'rgba(255,200,120,.95)');
-        spreadAngles(w.pellets, w.spread).forEach((a) => bullet(from, ang + a, Math.max(260, dist), 380));
+        spreadAngles(w.pellets, w.spread).forEach((a) => bullet(from, ang + a, Math.max(260, dist), { radius: 22, dmg: 0.6, power: 380 }));
       } else if (g === 'laser') {
         const end = extendToEdge(from.x, from.y, x, y, innerWidth, innerHeight);
         fx.flash(from.x, from.y, 34, 'rgba(120,230,255,.9)');
@@ -159,12 +171,12 @@ export function GameMode() {
         hitAll(alongLine(from.x, from.y, end.x, end.y, 24), 8).forEach((h, i) => later(() => {
           sound(g, 'hit');
           fx.spark(h.x, h.y, 12, { color: '#9be7ff', speed: 460 });
-          fx.shatter(h.t, h, 380);
+          damage.hit(h.t, h, { radius: 20, dmg: 3, power: 380 });
         }, 60 + i * 45));
       } else {
         fx.flash(from.x, from.y, 40, 'rgba(255,170,90,.9)');
         fx.spark(from.x, from.y, 8, { angle: ang + Math.PI, spread: 0.8, speed: 260, color: '#ff9a3a' });
-        fx.shoot('rocket', from.x, from.y, x, y, () => boom(x, y, 130, 10, 'rocket'));
+        fx.shoot('rocket', from.x, from.y, x, y, () => boom(x, y, 130, 10, 'rocket', 6));
       }
     };
     /** Right click: a grenade lands on the cursor, blinks, then blows. */
@@ -174,7 +186,7 @@ export function GameMode() {
       const from = muzzle();
       gameState.shots++; // the arm kicks
       sound('grenade', 'fire');
-      fx.lob(from.x, from.y, x, y, () => boom(x, y, 105, 6, 'grenade'));
+      fx.lob(from.x, from.y, x, y, () => boom(x, y, 105, 6, 'grenade', 5));
     };
 
     let held = false;
@@ -233,7 +245,11 @@ export function GameMode() {
       document.removeEventListener('keydown', onKey, true);
       clearInterval(auto);
       timers.forEach(clearTimeout);
-      fx.dispose(); // also restores every destroyed element
+      restartRef.current = () => {};
+      damage.restore();
+      fx.dispose(); // also restores everything the shatter effect hid
+      setMeter(0);
+      setDone(false);
       gameState.gun = null;
       delete root.dataset.game;
       window.dispatchEvent(new Event('game:end'));
@@ -253,8 +269,28 @@ export function GameMode() {
           {GUNS.map((g, i) => (
             <button key={g} className="btn btn-ghost" aria-pressed={gun === g} onClick={() => pick(g)}>{i + 1} {WEAPONS[g].label}</button>
           ))}
+          {playing && (
+            <div className="game-meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={meter}>
+              <i style={{ width: `${meter}%` }} />
+              <span>Destroyed {meter}%</span>
+            </div>
+          )}
           {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG) · right-click grenade · 1-5 or wheel weapon · Esc exit</span>}
           <button className="btn btn-primary" onClick={exit}>{playing ? 'Exit game' : 'Cancel'}</button>
+        </div>,
+        document.body,
+      )}
+      {playing && done && createPortal(
+        <div className="game-over" data-game-ui>
+          <div>
+            <h2>Portfolio destroyed</h2>
+            <p>{meter}% wiped out. Nice shooting.</p>
+            <div>
+              <button className="btn btn-primary" onClick={() => setDone(false)}>Keep destroying</button>
+              <button className="btn btn-ghost" onClick={() => restartRef.current()}>Restart</button>
+              <button className="btn btn-ghost" onClick={exit}>Exit</button>
+            </div>
+          </div>
         </div>,
         document.body,
       )}
