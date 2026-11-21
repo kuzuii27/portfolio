@@ -103,7 +103,6 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head" data-reveal="up">
               <h2 id="systems-title">Systems I can build for your business</h2>
-              <p>Practical tools for shops, clinics and small teams. Two of these build on work I have done; the rest are scope I can deliver.</p>
             </div>
             <div data-reveal="up"><SystemsShowcase /></div>
           </div>
@@ -141,7 +140,6 @@ export default function Home() {
           <div className="wrap">
             <div className="sec-head" data-reveal="up">
               <h2 id="contact-title">Let&apos;s talk</h2>
-              <p className="contact-hint">Drop a message — it goes straight to my inbox and I&apos;ll reply by email.</p>
             </div>
             <div className="contacts-cta">
               {VIBER && <a className="btn btn-ghost" data-magnetic href={VIBER} rel="noopener" aria-label="Chat on Viber"><ViberMark />Viber</a>}
