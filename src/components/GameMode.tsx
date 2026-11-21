@@ -6,8 +6,14 @@ import { BREAKABLE, alongLine, extendToEdge, gameState, isGameUi } from '@/lib/g
 import { BOMBLETS, GRENADE_COOLDOWN, GUNS, WEAPONS, bombletTargets, gunFromKey, nextWeapon, spreadAngles, type Gun } from '@/lib/weapons';
 import { createFx } from '@/components/game/fx';
 import { createDamage } from '@/components/game/damage';
+import { playCrash } from '@/components/game/crash';
 
 type Snd = Gun | 'grenade';
+
+// A refresh in the middle of a game cannot keep the destruction, so the next page load plays the crash finale instead. Read once at module load.
+const ACTIVE_KEY = 'destroy-game-active';
+let reloadCrash = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(ACTIVE_KEY) === '1';
+if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(ACTIVE_KEY);
 
 let ctx: AudioContext | null = null;
 let muted = false; // the pause menu's Sound switch
@@ -87,6 +93,7 @@ export function GameMode() {
   const [soundOn, setSoundOn] = useState(true);
   const [done, setDone] = useState(false); // the "portfolio destroyed" screen
   const restartRef = useRef<() => void>(() => {});
+  const exitingRef = useRef(false);
 
   useEffect(() => {
     queueMicrotask(() => setOk(!matchMedia('(prefers-reduced-motion: reduce), (pointer: coarse)').matches)); // keyboard + mouse game
@@ -97,9 +104,24 @@ export function GameMode() {
   }, [gun]);
 
   useEffect(() => {
+    if (!ok || !reloadCrash) return;
+    const run = () => { // after the intro loader, so the crash lands on the finished page
+      if (!reloadCrash) return;
+      reloadCrash = false;
+      playCrash({ onImpact: () => sound('rocket', 'hit') });
+    };
+    let t = 0;
+    const onLoader = () => { t = window.setTimeout(run, 500); };
+    window.addEventListener('loader:done', onLoader, { once: true });
+    const safety = window.setTimeout(run, 5500);
+    return () => { window.removeEventListener('loader:done', onLoader); clearTimeout(t); clearTimeout(safety); };
+  }, [ok]);
+
+  useEffect(() => {
     if (!playing) return;
     const root = document.documentElement;
     root.dataset.game = '1';
+    sessionStorage.setItem(ACTIVE_KEY, '1'); // still set if the page is refreshed mid-game
     window.dispatchEvent(new Event('game:start'));
     gameState.aim = { x: innerWidth * 0.6, y: innerHeight * 0.5 };
     const fx = createFx();
@@ -281,12 +303,20 @@ export function GameMode() {
       setPaused(false);
       gameState.gun = null;
       delete root.dataset.game;
+      sessionStorage.removeItem(ACTIVE_KEY);
       window.dispatchEvent(new Event('game:end'));
     };
   }, [playing]);
 
   if (!ok) return null;
-  const exit = () => { setGun(null); setOpen(false); };
+  // leaving a game: a huge meteor hits the page, and the flash hides the swap back to the normal page
+  const exit = () => {
+    if (exitingRef.current) return;
+    exitingRef.current = true;
+    setPaused(false);
+    setOpen(false);
+    playCrash({ onImpact: () => sound('rocket', 'hit'), onPeak: () => setGun(null), onDone: () => { exitingRef.current = false; } });
+  };
   const toggleSound = () => { muted = !muted; setSoundOn(!muted); };
   const pick = (g: Gun) => { setGun(g); setOpen(false); };
   return (
@@ -306,7 +336,7 @@ export function GameMode() {
             </div>
           )}
           {playing && <span className="game-hint">A D run · Space jump (again to flip, hold to fly) · S drop · click shoot (hold for SMG and Flame) · right-click grenade · 1-7 or wheel weapon · Esc menu</span>}
-          <button className="btn btn-primary" onClick={exit}>{playing ? 'Exit game' : 'Cancel'}</button>
+          <button className="btn btn-primary" onClick={playing ? exit : () => setOpen(false)}>{playing ? 'Exit game' : 'Cancel'}</button>
         </div>,
         document.body,
       )}

@@ -17,7 +17,7 @@ const FILLS = [
   'radial-gradient(circle at 35% 30%,#ffd18a,#d9531e 55%,#4a1608)', // molten
 ];
 /** A random jagged rock: 7-10 corners at uneven distances, random size and material. */
-function makeRock(): Rock {
+export function makeRock(): Rock {
   const n = 7 + Math.floor(Math.random() * 4);
   const pts = Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2 + rnd(-0.2, 0.2);
@@ -34,7 +34,7 @@ export const RockShape = ({ r, x, y, cls = '', style }: { r: Rock; x: number; y:
 );
 
 /** Radial cracks, one kinked segment and one branch each, in SVG units around the impact point. Also returns sample points along the main segments for the torch to trace. */
-function makeCracks() {
+export function makeCracks() {
   const n = 8 + Math.floor(Math.random() * 4);
   let d = '';
   const pts: { x: number; y: number }[] = [];

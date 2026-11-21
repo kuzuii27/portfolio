@@ -582,3 +582,11 @@ html[data-game] .space-bot{pointer-events:none}
 .game-over h2{margin:0 0 6px;font-size:28px}
 .game-over p{margin:0 0 18px;opacity:.8}
 .game-over>div>div{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.game-crash{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:auto}
+.crash-crack{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax}
+.crash-crack path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.crash-rock{position:absolute;left:50%;top:50%}
+.crash-rock::before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle,rgba(255,140,60,.55),transparent 65%)}
+.crash-rock i{display:block;width:100%;height:100%}
+.crash-tail{position:absolute;left:50%;bottom:50%;width:34px;height:900px;border-radius:17px;transform-origin:50% 100%;transform:translateX(-50%) rotate(35deg);background:linear-gradient(to top,rgba(255,206,140,.95),rgba(255,140,60,.35) 45%,transparent)}
+.crash-flash{position:absolute;inset:0;background:#fff;opacity:0}
